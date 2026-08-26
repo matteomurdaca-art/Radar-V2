@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — Comune di Biella</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blu:#1A56A0;--blu-d:#0C447C;--blu-l:#e6f0fb;
+  --rosso:#A32D2D;--rosso-l:#fcebeb;
+  --verde:#3B6D11;--verde-l:#eaf3de;
+  --arancio:#854F0B;--arancio-l:#faeeda;
+  --text:#1a1a1a;--muted:#666;--hint:#999;
+  --border:#e0e0e0;--bg:#f7f7f5;--white:#fff;
+  --radius:10px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* LOGIN */
+#login-overlay{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);}
+.login-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:32px 28px;width:100%;max-width:340px;text-align:center;}
+.login-logo{font-size:28px;display:block;margin-bottom:8px;}
+.login-title{font-size:17px;font-weight:600;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:22px;}
+.login-card input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:16px;margin-bottom:8px;}
+.login-card input:focus{outline:none;border-color:var(--blu);}
+.login-err{color:var(--rosso);font-size:13px;margin-bottom:8px;display:none;}
+.btn-login{width:100%;background:var(--blu);color:#fff;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;}
+
+/* DASHBOARD */
+#dashboard{display:none;}
+.header{background:var(--blu);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.header-logo{color:#fff;font-size:15px;font-weight:600;}
+.header-sub{color:rgba(255,255,255,0.75);font-size:11px;}
+.header-date{color:rgba(255,255,255,0.8);font-size:11px;}
+.btn-logout{background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
+
+.tabs{display:flex;background:var(--white);border-bottom:1px solid var(--border);}
+.tab{padding:11px 14px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:5px;}
+.tab.active{color:var(--blu);border-bottom-color:var(--blu);font-weight:500;}
+
+.content{padding:14px;max-width:720px;margin:0 auto;}
+.view{display:none;}
+.view.on{display:block;}
+
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.metric{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;}
+.metric-n{font-size:28px;font-weight:600;color:var(--text);}
+.metric-n.d{color:var(--rosso);}
+.metric-n.w{color:var(--arancio);}
+.metric-n.s{color:var(--verde);}
+.metric-l{font-size:11px;color:var(--hint);margin-top:2px;}
+
+.filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.fchip{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--muted);cursor:pointer;background:var(--white);}
+.fchip.active{background:var(--blu);color:#fff;border-color:var(--blu);}
+
+.seg{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;}
+.seg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.seg-name{font-size:14px;font-weight:600;color:var(--text);}
+.seg-loc{font-size:12px;color:var(--muted);margin-top:2px;}
+.seg-badges{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap;}
+.b-alta{background:var(--rosso-l);color:var(--rosso);}
+.b-media{background:var(--arancio-l);color:var(--arancio);}
+.b-bassa{background:var(--verde-l);color:var(--verde);}
+.b-nuova{background:var(--blu-l);color:var(--blu-d);}
+.b-presa{background:var(--arancio-l);color:var(--arancio);}
+.b-chiusa{background:var(--verde-l);color:var(--verde);}
+.b-cat{background:var(--bg);color:var(--muted);}
+.seg-media{display:flex;gap:6px;margin:6px 0;}
+.mtag{font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 7px;}
+.seg-desc{font-size:12px;color:var(--muted);margin:5px 0;line-height:1.5;}
+.seg-footer{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.seg-footer select{font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);}
+.seg-tel{font-size:11px;color:var(--blu);text-decoration:none;display:flex;align-items:center;gap:3px;}
+.seg-time{font-size:11px;color:var(--hint);margin-left:auto;}
+.anon-tag{font-size:10px;color:var(--hint);display:inline-flex;align-items:center;gap:3px;}
+
+.report-section{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;}
+.report-section h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px;}
+.rrow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.rrow:last-child{border-bottom:none;}
+.rrow span{color:var(--muted);}
+.btn-export{width:100%;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:13px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-export:hover{background:var(--bg);}
+
+@media(min-width:600px){.metrics{grid-template-columns:repeat(4,1fr);}.content{padding:20px 24px;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay">
+  <div class="login-card">
+    <span class="login-logo">🏛️</span>
+    <div class="login-title">Area riservata</div>
+    <div class="login-sub">Comune di Biella — Gestione segnalazioni</div>
+    <input type="password" id="pwd" placeholder="Password" onkeydown="if(event.key==='Enter')login()"/>
+    <div class="login-err" id="login-err">Password errata. Riprova.</div>
+    <button class="btn-login" onclick="login()">Accedi</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="header">
+    <div>
+      <div class="header-logo">🏛️ Dashboard Comune</div>
+      <div class="header-sub">Segnalazioni cittadini</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="header-date" id="hdate"></div>
+      <button class="btn-logout" onclick="logout()">Esci</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('seg',this)">📋 Segnalazioni</div>
+    <div class="tab" onclick="showTab('report',this)">📊 Report</div>
+  </div>
+
+  <div class="content">
+
+    <!-- SEGNALAZIONI -->
+    <div class="view on" id="v-seg" style="display:block;">
+      <div class="metrics">
+        <div class="metric"><div class="metric-n">6</div><div class="metric-l">Totale oggi</div></div>
+        <div class="metric"><div class="metric-n d">2</div><div class="metric-l">Alta urgenza</div></div>
+        <div class="metric"><div class="metric-n w">3</div><div class="metric-l">Da prendere in carico</div></div>
+        <div class="metric"><div class="metric-n s">2</div><div class="metric-l">Chiuse oggi</div></div>
+      </div>
+      <div class="filter-row">
+        <div class="fchip active" onclick="filtra('tutti',this)">Tutte</div>
+        <div class="fchip" onclick="filtra('alta',this)">⚠️ Alta urgenza</div>
+        <div class="fchip" onclick="filtra('nuova',this)">🔵 Nuove</div>
+        <div class="fchip" onclick="filtra('ordine',this)">Ordine pubblico</div>
+        <div class="fchip" onclick="filtra('degrado',this)">Degrado</div>
+      </div>
+      <div id="seg-list">
+
+        <div class="seg" data-u="alta" data-s="nuova" data-cat="ordine">
+          <div class="seg-head">
+            <div>
+              <div class="seg-name">Ordine pubblico — Via Ivrea</div>
+              <div class="seg-loc">📍 Via Ivrea 14, Biella &nbsp;<span class="anon-tag">🕵️ Anonimo</span></div>
+            </div>
+            <div class="seg-badges">
+              <span class="badge b-alta">Alta urgenza</span>
+              <span class="badge b-nuova">Nuova</span>
+              <span class="badge b-cat">Ordine pubblico</span>
+            </div>
+          </div>
+          <div class="seg-media"><span class="mtag">📷 Foto</span><span class="mtag">🎙️ Vocale 0:12</span></div>
+          <div class="seg-desc">Persona in stato di alterazione che urla e disturba. Presente da circa 30 minuti.</div>
+          <div class="seg-footer">
+            <select onchange="cambiaStato(this)"><option>Nuova</option><option>Presa in carico</option><option>Chiusa</option></select>
+            <span class="seg-time">🕐 09:14</span>
+          </div>
+        </div>
+
+        <div class="seg" data-u="alta" data-s="presa" data-cat="degrado">
+          <div class="seg-head">
+            <div>
+              <div class="seg-name">Buca pericolosa — Corso Unione</div>
+              <div class="seg-loc">📍 Corso Unione 8, Biella &nbsp;<span style="color:var(--blu);font-size:11px;">👤 Mario R.</span></div>
+            </div>
+            <div class="seg-badges">
+              <span class="badge b-alta">Alta urgenza</span>
+              <span class="badge b-presa">Presa in carico</span>
+              <span class="badge b-cat">Degrado urbano</span>
+            </div>
+          </div>
+          <div class="seg-media"><span class="mtag">📷 2 foto</span></div>
+          <div class="seg-desc">Buca profonda circa 20cm in mezzo alla carreggiata, rischio per auto e moto.</div>
+          <div class="seg-footer">
+            <select onchange="cambiaStato(this)"><option>Nuova</option><option selected>Presa in carico</option><option>Chiusa</option></select>
+            <a href="tel:3331234567" class="seg-tel">📞 333 123 4567</a>
+            <span class="seg-time">🕐 08:02</span>
+          </div>
+        </div>
+
+        <div class="seg" data-u="media" data-s="nuova" data-cat="degrado">
+          <div class="seg-head">
+            <div>
+              <div class="seg-name">Rifiuti abbandonati — Via Lamarmora</div>
+              <div class="seg-loc">📍 Via Lamarmora 22, Biella &nbsp;<span class="anon-tag">🕵️ Anonimo</span></div>
+            </div>
+            <div class="seg-badges">
+              <span class="badge b-media">Media urgenza</span>
+              <span class="badge b-nuova">Nuova</span>
+              <span class="badge b-cat">Degrado urbano</span>
+            </div>
+          </div>
+          <div class="seg-media"><span class="mtag">📷 Foto</span><span class="mtag">📝 Testo</span></div>
+          <div class="seg-desc">Sacchi della spazzatura abbandonati sul marciapiede da giorni.</div>
+          <div class="seg-footer">
+            <select onchange="cambiaStato(this)"><option selected>Nuova</option><option>Presa in carico</option><option>Chiusa</option></select>
+            <span class="seg-time">🕐 10:30</span>
+          </div>
+        </div>
+
+        <div class="seg" data-u="media" data-s="nuova" data-cat="viabilita">
+          <div class="seg-head">
+            <div>
+              <div class="seg-name">Parcheggio in divieto — P.za Martiri</div>
+              <div class="seg-loc">📍 Piazza Martiri, Biella &nbsp;<span style="color:var(--blu);font-size:11px;">👤 Lucia F.</span></div>
+            </div>
+            <div class="seg-badges">
+              <span class="badge b-media">Media urgenza</span>
+              <span class="badge b-nuova">Nuova</span>
+              <span class="badge b-cat">Viabilità</span>
+            </div>
+          </div>
+          <div class="seg-media"><span class="mtag">📷 Foto</span></div>
+          <div class="seg-desc">Auto in sosta vietata che blocca l'accesso ai disabili da stamattina.</div>
+          <div class="seg-footer">
+            <select onchange="cambiaStato(this)"><option selected>Nuova</option><option>Presa in carico</option><option>Chiusa</option></select>
+            <a href="tel:3339876543" class="seg-tel">📞 333 987 6543</a>
+            <span class="seg-time">🕐 11:05</span>
+          </div>
+        </div>
+
+        <div class="seg" data-u="bassa" data-s="chiusa" data-cat="degrado">
+          <div class="seg-head">
+            <div>
+              <div class="seg-name">Lampione guasto — Via Roma</div>
+              <div class="seg-loc">📍 Via Roma 45, Biella &nbsp;<span class="anon-tag">🕵️ Anonimo</span></div>
+            </div>
+            <div class="seg-badges">
+              <span class="badge b-bassa">Bassa urgenza</span>
+              <span class="badge b-chiusa">Chiusa</span>
+              <span class="badge b-cat">Degrado urbano</span>
+            </div>
+          </div>
+          <div class="seg-desc">Lampione non funzionante da 3 giorni. Zona buia di notte.</div>
+          <div class="seg-footer">
+            <select onchange="cambiaStato(this)"><option>Nuova</option><option>Presa in carico</option><option selected>Chiusa</option></select>
+            <span class="seg-time">🕐 07:20</span>
+          </div>
+        </div>
+
+        <div class="seg" data-u="bassa" data-s="chiusa" data-cat="degrado">
+          <div class="seg-head">
+            <div>
+              <div class="seg-name">Graffiti — Scuola elementare</div>
+              <div class="seg-loc">📍 Via Galilei 3, Biella &nbsp;<span style="color:var(--blu);font-size:11px;">👤 Paolo V.</span></div>
+            </div>
+            <div class="seg-badges">
+              <span class="badge b-bassa">Bassa urgenza</span>
+              <span class="badge b-chiusa">Chiusa</span>
+              <span class="badge b-cat">Degrado urbano</span>
+            </div>
+          </div>
+          <div class="seg-media"><span class="mtag">📷 3 foto</span><span class="mtag">🎙️ Vocale 0:08</span></div>
+          <div class="seg-desc">Graffiti su muro esterno della scuola. Già rimosso stamattina.</div>
+          <div class="seg-footer">
+            <select onchange="cambiaStato(this)"><option>Nuova</option><option>Presa in carico</option><option selected>Chiusa</option></select>
+            <a href="tel:3456789012" class="seg-tel">📞 345 678 9012</a>
+            <span class="seg-time">🕐 06:55</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="view" id="v-report" style="display:none;">
+      <button class="btn-export" onclick="inviaEmail()">✉️ Invia report al sindaco</button>
+      <div class="report-section">
+        <h3>Riepilogo giornaliero</h3>
+        <div class="rrow"><span>Segnalazioni ricevute</span><strong>6</strong></div>
+        <div class="rrow"><span>Alta urgenza</span><strong style="color:var(--rosso)">2</strong></div>
+        <div class="rrow"><span>Prese in carico</span><strong style="color:var(--arancio)">1</strong></div>
+        <div class="rrow"><span>Chiuse</span><strong style="color:var(--verde)">2</strong></div>
+        <div class="rrow"><span>Ancora nuove</span><strong style="color:var(--blu)">3</strong></div>
+      </div>
+      <div class="report-section">
+        <h3>Per categoria</h3>
+        <div class="rrow"><span>Degrado urbano</span><strong>4</strong></div>
+        <div class="rrow"><span>Ordine pubblico</span><strong>1</strong></div>
+        <div class="rrow"><span>Viabilità</span><strong>1</strong></div>
+      </div>
+      <div class="report-section">
+        <h3>Per modalità segnalatore</h3>
+        <div class="rrow"><span>Identificati</span><strong>3</strong></div>
+        <div class="rrow"><span>Anonimi</span><strong>3</strong></div>
+      </div>
+      <div class="report-section">
+        <h3>Allegati ricevuti</h3>
+        <div class="rrow"><span>Con foto</span><strong>5</strong></div>
+        <div class="rrow"><span>Con vocale</span><strong>2</strong></div>
+        <div class="rrow"><span>Solo testo</span><strong>1</strong></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var PWD='comune2024';
+document.getElementById('hdate').textContent=new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+
+function login(){
+  var v=document.getElementById('pwd').value;
+  if(v===PWD){
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('pwd').value='';
+    document.getElementById('pwd').focus();
+  }
+}
+
+function logout(){
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('login-overlay').style.display='flex';
+  document.getElementById('pwd').value='';
+  document.getElementById('login-err').style.display='none';
+}
+
+function showTab(name,btn){
+  document.querySelectorAll('.view').forEach(function(v){v.style.display='none';v.classList.remove('on');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  var el=document.getElementById('v-'+name);el.style.display='block';el.classList.add('on');
+  btn.classList.add('active');
+}
+
+function filtra(tipo,chip){
+  document.querySelectorAll('.fchip').forEach(function(c){c.classList.remove('active');});
+  chip.classList.add('active');
+  document.querySelectorAll('.seg').forEach(function(s){
+    if(tipo==='tutti'){s.style.display='';return;}
+    if(tipo==='alta') s.style.display=s.dataset.u==='alta'?'':'none';
+    else if(tipo==='nuova') s.style.display=s.dataset.s==='nuova'?'':'none';
+    else if(tipo==='ordine') s.style.display=s.dataset.cat==='ordine'?'':'none';
+    else if(tipo==='degrado') s.style.display=s.dataset.cat==='degrado'?'':'none';
+  });
+}
+
+function cambiaStato(sel){
+  var seg=sel.closest('.seg');
+  var b=seg.querySelectorAll('.badge')[1];
+  var v=sel.value;
+  b.className='badge';
+  if(v==='Nuova'){b.classList.add('b-nuova');b.textContent='Nuova';seg.dataset.s='nuova';}
+  else if(v==='Presa in carico'){b.classList.add('b-presa');b.textContent='Presa in carico';seg.dataset.s='presa';}
+  else{b.classList.add('b-chiusa');b.textContent='Chiusa';seg.dataset.s='chiusa';}
+}
+
+function inviaEmail(){
+  var oggi=new Date().toLocaleDateString('it-IT');
+  var body='Report segnalazioni Comune di Biella — '+oggi+'\n\nTotale: 6\nAlta urgenza: 2\nChiuse: 2\nAncora aperte: 4';
+  window.location.href='mailto:sindaco@comune.biella.it?subject='+encodeURIComponent('Report segnalazioni '+oggi)+'&body='+encodeURIComponent(body);
+}
+</script>
+</body>
+</html>
