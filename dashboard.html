@@ -1,360 +1,697 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Dashboard — Il tuo Comune</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RADAR — Dashboard comunale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --blu:#1A56A0;--blu-d:#0C447C;--blu-l:#e6f0fb;
-  --rosso:#A32D2D;--rosso-l:#fcebeb;
-  --verde:#3B6D11;--verde-l:#eaf3de;
-  --arancio:#854F0B;--arancio-l:#faeeda;
-  --text:#1a1a1a;--muted:#666;--hint:#999;
-  --border:#e0e0e0;--bg:#f7f7f5;--white:#fff;
-  --radius:10px;
+  --bg:#070B10;
+  --surface:#0E1620;
+  --surface-2:#131E2A;
+  --line:#1C2A38;
+  --text:#E6F1F7;
+  --muted:#7E93A3;
+  --cyan:#00E5FF;
+  --cyan-dim:rgba(0,229,255,.12);
+  --nuova:#00E5FF;
+  --carico:#FFB020;
+  --risolta:#34D399;
+  --respinta:#64748B;
+  --display:"Space Grotesk",system-ui,sans-serif;
+  --body:"Inter",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --r:10px;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:4px}
 
-/* LOGIN */
-#login-overlay{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);}
-.login-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:32px 28px;width:100%;max-width:340px;text-align:center;}
-.login-logo{font-size:28px;display:block;margin-bottom:8px;}
-.login-title{font-size:17px;font-weight:600;margin-bottom:4px;}
-.login-sub{font-size:13px;color:var(--muted);margin-bottom:22px;}
-.login-card input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:16px;margin-bottom:8px;}
-.login-card input:focus{outline:none;border-color:var(--blu);}
-.login-err{color:var(--rosso);font-size:13px;margin-bottom:8px;display:none;}
-.btn-login{width:100%;background:var(--blu);color:#fff;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;}
+/* ---------- Header ---------- */
+.topbar{
+  display:flex;align-items:center;gap:16px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#0B131C,#070B10);
+  position:sticky;top:0;z-index:30;
+}
+.brand{display:flex;align-items:center;gap:11px}
+.brand h1{
+  font-family:var(--display);font-weight:700;font-size:19px;
+  letter-spacing:.22em;margin:0;
+}
+.brand .sub{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  letter-spacing:.12em;text-transform:uppercase;margin-top:-2px;
+}
+.comune{
+  margin-left:auto;text-align:right;
+}
+.comune .nome{font-family:var(--display);font-weight:500;font-size:14px}
+.comune .ruolo{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em}
+.live{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  color:var(--cyan);text-transform:uppercase;
+  padding:5px 10px;border:1px solid rgba(0,229,255,.25);border-radius:99px;
+  background:var(--cyan-dim);
+}
+.live .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 
-/* DASHBOARD */
-#dashboard{display:none;}
-.header{background:var(--blu);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
-.header-logo{color:#fff;font-size:15px;font-weight:600;}
-.header-sub{color:rgba(255,255,255,0.75);font-size:11px;}
-.header-date{color:rgba(255,255,255,0.8);font-size:11px;}
-.btn-logout{background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
+/* ---------- Layout ---------- */
+.shell{
+  display:grid;
+  grid-template-columns:300px minmax(0,1fr) 380px;
+  gap:1px;background:var(--line);
+  min-height:calc(100vh - 61px);
+}
+.col{background:var(--bg);min-width:0}
+.scroll{overflow-y:auto;max-height:calc(100vh - 61px)}
 
-.tabs{display:flex;background:var(--white);border-bottom:1px solid var(--border);}
-.tab{padding:11px 14px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:5px;}
-.tab.active{color:var(--blu);border-bottom-color:var(--blu);font-weight:500;}
+/* ---------- Scope (elemento firma) ---------- */
+.scope-wrap{padding:20px 18px 14px}
+.scope{position:relative;width:100%;aspect-ratio:1;max-width:264px;margin:0 auto}
+.scope svg{width:100%;height:100%;display:block}
+.sweep{transform-origin:150px 150px;animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.blip{cursor:pointer;transition:r .15s ease}
+.blip:hover circle,.blip.on circle{r:7}
+.scope-legend{
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:9.5px;color:var(--muted);
+  letter-spacing:.08em;margin-top:10px;padding:0 4px;
+}
 
-.content{padding:14px;max-width:720px;margin:0 auto;}
-.view{display:none;}
-.view.on{display:block;}
+/* ---------- Filtri ---------- */
+.side-sec{padding:16px 18px;border-top:1px solid var(--line)}
+.side-sec h2{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 12px;font-weight:500;
+}
+.stat{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:9px 11px;border-radius:var(--r);
+  border:1px solid transparent;text-align:left;margin-bottom:5px;
+  transition:background .12s,border-color .12s;
+}
+.stat:hover{background:var(--surface)}
+.stat[aria-pressed="true"]{background:var(--surface-2);border-color:var(--line)}
+.stat .sq{width:8px;height:8px;border-radius:2px;flex:none}
+.stat .lb{flex:1;font-size:13px}
+.stat .n{font-family:var(--mono);font-size:14px;color:var(--muted)}
+.stat[aria-pressed="true"] .n{color:var(--text)}
 
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
-.metric{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;}
-.metric-n{font-size:28px;font-weight:600;color:var(--text);}
-.metric-n.d{color:var(--rosso);}
-.metric-n.w{color:var(--arancio);}
-.metric-n.s{color:var(--verde);}
-.metric-l{font-size:11px;color:var(--hint);margin-top:2px;}
+.ghost{
+  width:100%;padding:9px;border:1px solid var(--line);border-radius:var(--r);
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);transition:border-color .12s,color .12s;
+}
+.ghost:hover{border-color:var(--cyan);color:var(--cyan)}
 
-.filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
-.fchip{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--muted);cursor:pointer;background:var(--white);}
-.fchip.active{background:var(--blu);color:#fff;border-color:var(--blu);}
+/* ---------- Lista ---------- */
+.list-head{
+  display:flex;gap:10px;align-items:center;
+  padding:16px 20px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--bg);z-index:10;
+}
+.search{
+  flex:1;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:9px 12px;color:var(--text);
+  font-family:var(--body);font-size:13px;
+}
+.search::placeholder{color:var(--muted)}
+.search:focus{outline:none;border-color:var(--cyan)}
+select.search{cursor:pointer;flex:none;width:150px}
 
-.seg{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;}
-.seg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
-.seg-name{font-size:14px;font-weight:600;color:var(--text);}
-.seg-loc{font-size:12px;color:var(--muted);margin-top:2px;}
-.seg-badges{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
-.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap;}
-.b-alta{background:var(--rosso-l);color:var(--rosso);}
-.b-media{background:var(--arancio-l);color:var(--arancio);}
-.b-bassa{background:var(--verde-l);color:var(--verde);}
-.b-nuova{background:var(--blu-l);color:var(--blu-d);}
-.b-presa{background:var(--arancio-l);color:var(--arancio);}
-.b-chiusa{background:var(--verde-l);color:var(--verde);}
-.b-cat{background:var(--bg);color:var(--muted);}
-.seg-media{display:flex;gap:6px;margin:6px 0;}
-.mtag{font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 7px;}
-.seg-desc{font-size:12px;color:var(--muted);margin:5px 0;line-height:1.5;}
-.seg-footer{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
-.seg-footer select{font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);}
-.seg-tel{font-size:11px;color:var(--blu);text-decoration:none;display:flex;align-items:center;gap:3px;}
-.seg-time{font-size:11px;color:var(--hint);margin-left:auto;}
-.anon-tag{font-size:10px;color:var(--hint);display:inline-flex;align-items:center;gap:3px;}
+.cards{padding:12px}
+.card{
+  display:block;width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--line);
+  border-radius:var(--r);padding:13px 15px;margin-bottom:9px;
+  transition:border-color .12s,transform .12s;
+}
+.card:hover{transform:translateX(2px)}
+.card.on{background:var(--surface-2);border-color:rgba(0,229,255,.35)}
+.card-top{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.code{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.badge{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border-radius:99px;border:1px solid currentColor;
+}
+.when{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.card h3{font-family:var(--display);font-weight:500;font-size:15px;margin:0 0 3px}
+.addr{font-size:12.5px;color:var(--muted);margin:0}
+.tags{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.tag{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+  color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:2px 6px;
+}
+.tag.anon{color:var(--carico);border-color:rgba(255,176,32,.3)}
 
-.report-section{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;}
-.report-section h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px;}
-.rrow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
-.rrow:last-child{border-bottom:none;}
-.rrow span{color:var(--muted);}
-.btn-export{width:100%;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:13px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;}
-.btn-export:hover{background:var(--bg);}
+.empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.empty strong{display:block;font-family:var(--display);color:var(--text);font-size:16px;margin-bottom:6px;font-weight:500}
 
-@media(min-width:600px){.metrics{grid-template-columns:repeat(4,1fr);}.content{padding:20px 24px;}}
+/* ---------- Dettaglio ---------- */
+.detail{padding:20px}
+.detail-head{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:16px}
+.detail-head .code{display:block;margin-bottom:7px}
+.detail-head h2{font-family:var(--display);font-weight:500;font-size:20px;margin:0 0 8px;line-height:1.25}
+.media{
+  aspect-ratio:4/3;border-radius:var(--r);border:1px solid var(--line);
+  background:
+    repeating-linear-gradient(45deg,#101A24 0 12px,#0D151E 12px 24px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;color:var(--muted);margin-bottom:14px;
+}
+.media .mono{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.audio{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 13px;margin-bottom:14px;
+}
+.play{
+  width:32px;height:32px;border-radius:50%;flex:none;
+  border:1px solid rgba(0,229,255,.35);color:var(--cyan);
+  display:flex;align-items:center;justify-content:center;background:var(--cyan-dim);
+}
+.wave{flex:1;display:flex;align-items:center;gap:2px;height:24px}
+.wave span{flex:1;background:rgba(0,229,255,.35);border-radius:1px}
+
+.field{margin-bottom:15px}
+.field .k{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:5px;
+}
+.field .v{font-size:13.5px}
+.field .v.mono{font-family:var(--mono);font-size:12px}
+.quote{
+  background:var(--surface);border-left:2px solid var(--cyan);
+  border-radius:0 var(--r) var(--r) 0;padding:11px 13px;font-size:13.5px;
+}
+
+.timeline{list-style:none;margin:0;padding:0 0 0 16px;border-left:1px solid var(--line)}
+.timeline li{position:relative;padding:0 0 14px 14px}
+.timeline li::before{
+  content:"";position:absolute;left:-21px;top:5px;
+  width:9px;height:9px;border-radius:50%;background:var(--line);border:2px solid var(--bg);
+}
+.timeline li:first-child::before{background:var(--cyan)}
+.timeline .t{font-size:13px}
+.timeline .m{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+.actions{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  border-top:1px solid var(--line);padding-top:16px;margin-top:4px;
+}
+.act{
+  padding:11px;border-radius:var(--r);border:1px solid var(--line);
+  font-size:12.5px;font-weight:500;transition:border-color .12s,background .12s,color .12s;
+}
+.act:hover:not(:disabled){background:var(--surface-2)}
+.act:disabled{opacity:.35;cursor:not-allowed}
+.act.primary{border-color:rgba(0,229,255,.4);color:var(--cyan);background:var(--cyan-dim)}
+.act.ok{border-color:rgba(52,211,153,.4);color:var(--risolta)}
+.act.no{color:var(--respinta)}
+.act.wide{grid-column:1/-1}
+
+textarea.note{
+  width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);color:var(--text);font-family:var(--body);font-size:13px;
+  padding:10px 12px;resize:vertical;min-height:70px;margin-top:4px;
+}
+textarea.note:focus{outline:none;border-color:var(--cyan)}
+
+.placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;min-height:400px;padding:40px;text-align:center;color:var(--muted);gap:14px;
+}
+.placeholder p{max-width:230px;margin:0;font-size:13px}
+
+.close-detail{display:none}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){
+  .shell{grid-template-columns:260px minmax(0,1fr) 340px}
+}
+@media (max-width:980px){
+  .shell{display:block;background:var(--bg)}
+  .scroll{max-height:none;overflow:visible}
+  .col-side{border-bottom:1px solid var(--line)}
+  .scope-wrap{display:none}
+  .col-detail{
+    display:none;position:fixed;inset:0;z-index:50;
+    background:var(--bg);overflow-y:auto;
+  }
+  .col-detail.open{display:block}
+  .close-detail{
+    display:flex;align-items:center;gap:8px;width:100%;
+    padding:14px 20px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    position:sticky;top:0;background:var(--bg);z-index:5;
+  }
+  .comune{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-overlay">
-  <div class="login-card">
-    <span class="login-logo">🏛️</span>
-    <div class="login-title">Area riservata</div>
-    <div class="login-sub">Il tuo Comune — Gestione segnalazioni</div>
-    <input type="password" id="pwd" placeholder="Password" onkeydown="if(event.key==='Enter')login()"/>
-    <div class="login-err" id="login-err">Password errata. Riprova.</div>
-    <button class="btn-login" onclick="login()">Accedi</button>
-  </div>
-</div>
-
-<!-- DASHBOARD -->
-<div id="dashboard">
-  <div class="header">
+<header class="topbar">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r="18" fill="none" stroke="#00E5FF" stroke-opacity=".22" stroke-width="1.5"/>
+      <circle cx="20" cy="20" r="12" fill="none" stroke="#00E5FF" stroke-opacity=".38" stroke-width="1.5"/>
+      <circle cx="20" cy="20" r="6" fill="none" stroke="#00E5FF" stroke-opacity=".6" stroke-width="1.5"/>
+      <circle cx="20" cy="20" r="2.4" fill="#00E5FF"/>
+    </svg>
     <div>
-      <div class="header-logo">🏛️ Dashboard Comune</div>
-      <div class="header-sub">RADAR — Segnalazioni cittadini</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="header-date" id="hdate"></div>
-      <button class="btn-logout" onclick="logout()">Esci</button>
+      <h1>RADAR</h1>
+      <div class="sub">Dashboard comunale</div>
     </div>
   </div>
-
-  <div class="tabs">
-    <div class="tab active" onclick="showTab('seg',this)">📋 Segnalazioni</div>
-    <div class="tab" onclick="showTab('report',this)">📊 Report</div>
+  <div class="live"><span class="dot"></span> In ascolto</div>
+  <div class="comune">
+    <div class="nome" id="nomeComune">Comune di Verrone</div>
+    <div class="ruolo">Ufficio tecnico · M. Rossi</div>
   </div>
+</header>
 
-  <div class="content">
+<div class="shell">
 
-    <!-- SEGNALAZIONI -->
-    <div class="view on" id="v-seg" style="display:block;">
-      <div class="metrics">
-        <div class="metric"><div class="metric-n">6</div><div class="metric-l">Totale oggi</div></div>
-        <div class="metric"><div class="metric-n d">2</div><div class="metric-l">Alta urgenza</div></div>
-        <div class="metric"><div class="metric-n w">3</div><div class="metric-l">Da prendere in carico</div></div>
-        <div class="metric"><div class="metric-n s">2</div><div class="metric-l">Chiuse oggi</div></div>
+  <!-- Colonna sinistra: scope + filtri -->
+  <aside class="col col-side scroll">
+    <div class="scope-wrap">
+      <div class="scope">
+        <svg viewBox="0 0 300 300" role="img" aria-label="Mappa radar delle segnalazioni attorno al municipio">
+          <defs>
+            <linearGradient id="sw" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#00E5FF" stop-opacity=".28"/>
+              <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <circle cx="150" cy="150" r="140" fill="#0B131C" stroke="#1C2A38"/>
+          <circle cx="150" cy="150" r="105" fill="none" stroke="#1C2A38"/>
+          <circle cx="150" cy="150" r="70" fill="none" stroke="#1C2A38"/>
+          <circle cx="150" cy="150" r="35" fill="none" stroke="#1C2A38"/>
+          <line x1="10" y1="150" x2="290" y2="150" stroke="#1C2A38"/>
+          <line x1="150" y1="10" x2="150" y2="290" stroke="#1C2A38"/>
+          <g class="sweep"><path d="M150 150 L290 150 A140 140 0 0 0 251 51 Z" fill="url(#sw)"/></g>
+          <circle cx="150" cy="150" r="3.5" fill="#00E5FF"/>
+          <g id="blips"></g>
+        </svg>
       </div>
-      <div class="filter-row">
-        <div class="fchip active" onclick="filtra('tutti',this)">Tutte</div>
-        <div class="fchip" onclick="filtra('alta',this)">⚠️ Alta urgenza</div>
-        <div class="fchip" onclick="filtra('nuova',this)">🔵 Nuove</div>
-        <div class="fchip" onclick="filtra('ordine',this)">Ordine pubblico</div>
-        <div class="fchip" onclick="filtra('degrado',this)">Degrado</div>
-      </div>
-      <div id="seg-list">
-
-        <div class="seg" data-u="alta" data-s="nuova" data-cat="ordine">
-          <div class="seg-head">
-            <div>
-              <div class="seg-name">Ordine pubblico — Via Ivrea</div>
-              <div class="seg-loc">📍 Via Ivrea 14, Biella &nbsp;<span class="anon-tag">🕵️ Anonimo</span></div>
-            </div>
-            <div class="seg-badges">
-              <span class="badge b-alta">Alta urgenza</span>
-              <span class="badge b-nuova">Nuova</span>
-              <span class="badge b-cat">Ordine pubblico</span>
-            </div>
-          </div>
-          <div class="seg-media"><span class="mtag">📷 Foto</span><span class="mtag">🎙️ Vocale 0:12</span></div>
-          <div class="seg-desc">Persona in stato di alterazione che urla e disturba. Presente da circa 30 minuti.</div>
-          <div class="seg-footer">
-            <select onchange="cambiaStato(this)"><option>Nuova</option><option>Presa in carico</option><option>Chiusa</option></select>
-            <span class="seg-time">🕐 09:14</span>
-          </div>
-        </div>
-
-        <div class="seg" data-u="alta" data-s="presa" data-cat="degrado">
-          <div class="seg-head">
-            <div>
-              <div class="seg-name">Buca pericolosa — Corso Unione</div>
-              <div class="seg-loc">📍 Corso Unione 8, Biella &nbsp;<span style="color:var(--blu);font-size:11px;">👤 Mario R.</span></div>
-            </div>
-            <div class="seg-badges">
-              <span class="badge b-alta">Alta urgenza</span>
-              <span class="badge b-presa">Presa in carico</span>
-              <span class="badge b-cat">Degrado urbano</span>
-            </div>
-          </div>
-          <div class="seg-media"><span class="mtag">📷 2 foto</span></div>
-          <div class="seg-desc">Buca profonda circa 20cm in mezzo alla carreggiata, rischio per auto e moto.</div>
-          <div class="seg-footer">
-            <select onchange="cambiaStato(this)"><option>Nuova</option><option selected>Presa in carico</option><option>Chiusa</option></select>
-            <a href="tel:3331234567" class="seg-tel">📞 333 123 4567</a>
-            <span class="seg-time">🕐 08:02</span>
-          </div>
-        </div>
-
-        <div class="seg" data-u="media" data-s="nuova" data-cat="degrado">
-          <div class="seg-head">
-            <div>
-              <div class="seg-name">Rifiuti abbandonati — Via Lamarmora</div>
-              <div class="seg-loc">📍 Via Lamarmora 22, Biella &nbsp;<span class="anon-tag">🕵️ Anonimo</span></div>
-            </div>
-            <div class="seg-badges">
-              <span class="badge b-media">Media urgenza</span>
-              <span class="badge b-nuova">Nuova</span>
-              <span class="badge b-cat">Degrado urbano</span>
-            </div>
-          </div>
-          <div class="seg-media"><span class="mtag">📷 Foto</span><span class="mtag">📝 Testo</span></div>
-          <div class="seg-desc">Sacchi della spazzatura abbandonati sul marciapiede da giorni.</div>
-          <div class="seg-footer">
-            <select onchange="cambiaStato(this)"><option selected>Nuova</option><option>Presa in carico</option><option>Chiusa</option></select>
-            <span class="seg-time">🕐 10:30</span>
-          </div>
-        </div>
-
-        <div class="seg" data-u="media" data-s="nuova" data-cat="viabilita">
-          <div class="seg-head">
-            <div>
-              <div class="seg-name">Parcheggio in divieto — P.za Martiri</div>
-              <div class="seg-loc">📍 Piazza Martiri, Biella &nbsp;<span style="color:var(--blu);font-size:11px;">👤 Lucia F.</span></div>
-            </div>
-            <div class="seg-badges">
-              <span class="badge b-media">Media urgenza</span>
-              <span class="badge b-nuova">Nuova</span>
-              <span class="badge b-cat">Viabilità</span>
-            </div>
-          </div>
-          <div class="seg-media"><span class="mtag">📷 Foto</span></div>
-          <div class="seg-desc">Auto in sosta vietata che blocca l'accesso ai disabili da stamattina.</div>
-          <div class="seg-footer">
-            <select onchange="cambiaStato(this)"><option selected>Nuova</option><option>Presa in carico</option><option>Chiusa</option></select>
-            <a href="tel:3339876543" class="seg-tel">📞 333 987 6543</a>
-            <span class="seg-time">🕐 11:05</span>
-          </div>
-        </div>
-
-        <div class="seg" data-u="bassa" data-s="chiusa" data-cat="degrado">
-          <div class="seg-head">
-            <div>
-              <div class="seg-name">Lampione guasto — Via Roma</div>
-              <div class="seg-loc">📍 Via Roma 45, Biella &nbsp;<span class="anon-tag">🕵️ Anonimo</span></div>
-            </div>
-            <div class="seg-badges">
-              <span class="badge b-bassa">Bassa urgenza</span>
-              <span class="badge b-chiusa">Chiusa</span>
-              <span class="badge b-cat">Degrado urbano</span>
-            </div>
-          </div>
-          <div class="seg-desc">Lampione non funzionante da 3 giorni. Zona buia di notte.</div>
-          <div class="seg-footer">
-            <select onchange="cambiaStato(this)"><option>Nuova</option><option>Presa in carico</option><option selected>Chiusa</option></select>
-            <span class="seg-time">🕐 07:20</span>
-          </div>
-        </div>
-
-        <div class="seg" data-u="bassa" data-s="chiusa" data-cat="degrado">
-          <div class="seg-head">
-            <div>
-              <div class="seg-name">Graffiti — Scuola elementare</div>
-              <div class="seg-loc">📍 Via Galilei 3, Biella &nbsp;<span style="color:var(--blu);font-size:11px;">👤 Paolo V.</span></div>
-            </div>
-            <div class="seg-badges">
-              <span class="badge b-bassa">Bassa urgenza</span>
-              <span class="badge b-chiusa">Chiusa</span>
-              <span class="badge b-cat">Degrado urbano</span>
-            </div>
-          </div>
-          <div class="seg-media"><span class="mtag">📷 3 foto</span><span class="mtag">🎙️ Vocale 0:08</span></div>
-          <div class="seg-desc">Graffiti su muro esterno della scuola. Già rimosso stamattina.</div>
-          <div class="seg-footer">
-            <select onchange="cambiaStato(this)"><option>Nuova</option><option>Presa in carico</option><option selected>Chiusa</option></select>
-            <a href="tel:3456789012" class="seg-tel">📞 345 678 9012</a>
-            <span class="seg-time">🕐 06:55</span>
-          </div>
-        </div>
-
-      </div>
+      <div class="scope-legend"><span>Municipio</span><span>Raggio 3 km</span></div>
     </div>
 
-    <!-- REPORT -->
-    <div class="view" id="v-report" style="display:none;">
-      <button class="btn-export" onclick="inviaEmail()">✉️ Invia report al sindaco</button>
-      <div class="report-section">
-        <h3>Riepilogo giornaliero</h3>
-        <div class="rrow"><span>Segnalazioni ricevute</span><strong>6</strong></div>
-        <div class="rrow"><span>Alta urgenza</span><strong style="color:var(--rosso)">2</strong></div>
-        <div class="rrow"><span>Prese in carico</span><strong style="color:var(--arancio)">1</strong></div>
-        <div class="rrow"><span>Chiuse</span><strong style="color:var(--verde)">2</strong></div>
-        <div class="rrow"><span>Ancora nuove</span><strong style="color:var(--blu)">3</strong></div>
-      </div>
-      <div class="report-section">
-        <h3>Per categoria</h3>
-        <div class="rrow"><span>Degrado urbano</span><strong>4</strong></div>
-        <div class="rrow"><span>Ordine pubblico</span><strong>1</strong></div>
-        <div class="rrow"><span>Viabilità</span><strong>1</strong></div>
-      </div>
-      <div class="report-section">
-        <h3>Per modalità segnalatore</h3>
-        <div class="rrow"><span>Identificati</span><strong>3</strong></div>
-        <div class="rrow"><span>Anonimi</span><strong>3</strong></div>
-      </div>
-      <div class="report-section">
-        <h3>Allegati ricevuti</h3>
-        <div class="rrow"><span>Con foto</span><strong>5</strong></div>
-        <div class="rrow"><span>Con vocale</span><strong>2</strong></div>
-        <div class="rrow"><span>Solo testo</span><strong>1</strong></div>
-      </div>
+    <div class="side-sec">
+      <h2>Stato</h2>
+      <div id="filtri"></div>
     </div>
 
-  </div>
+    <div class="side-sec">
+      <h2>Report</h2>
+      <button class="ghost" id="btnCsv">Esporta elenco in CSV</button>
+    </div>
+  </aside>
+
+  <!-- Colonna centrale: lista -->
+  <main class="col scroll">
+    <div class="list-head">
+      <input class="search" id="q" type="search" placeholder="Cerca per via, codice o parola…" aria-label="Cerca segnalazioni">
+      <select class="search" id="cat" aria-label="Filtra per categoria">
+        <option value="">Tutte le categorie</option>
+      </select>
+    </div>
+    <div class="cards" id="lista"></div>
+  </main>
+
+  <!-- Colonna destra: dettaglio -->
+  <section class="col col-detail scroll" id="pannello">
+    <button class="close-detail" id="btnChiudi">← Torna all'elenco</button>
+    <div id="dettaglio"></div>
+  </section>
+
 </div>
 
 <script>
-var PWD='comune2024';
-document.getElementById('hdate').textContent=new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+/* =========================================================
+   RADAR — Dashboard comunale
+   Dati dimostrativi in memoria. Per collegare le segnalazioni
+   reali, sostituire l'array SEGNALAZIONI con i dati provenienti
+   dal backend (o da un file JSON) mantenendo la stessa struttura.
+   ========================================================= */
 
-function login(){
-  var v=document.getElementById('pwd').value;
-  if(v===PWD){
-    document.getElementById('login-overlay').style.display='none';
-    document.getElementById('dashboard').style.display='block';
-  } else {
-    document.getElementById('login-err').style.display='block';
-    document.getElementById('pwd').value='';
-    document.getElementById('pwd').focus();
+const MUNICIPIO = { lat: 45.5628, lng: 8.0583 }; // centro dello scope
+const RAGGIO_KM = 3;
+
+const STATI = {
+  nuova:    { label: "Nuova",       colore: "var(--nuova)"   },
+  carico:   { label: "In carico",   colore: "var(--carico)"  },
+  risolta:  { label: "Risolta",     colore: "var(--risolta)" },
+  respinta: { label: "Respinta",    colore: "var(--respinta)"}
+};
+
+const SEGNALAZIONI = [
+  { id:"RAD-2601", cat:"Viabilità", titolo:"Buca profonda in mezzo alla carreggiata",
+    indirizzo:"Via Circonvallazione 24", lat:45.5651, lng:8.0611, stato:"nuova",
+    ts:"2026-08-27T07:42:00", anonima:false, cittadino:"Laura Bertone", contatto:"l.bertone@email.it",
+    foto:true, vocale:true,
+    testo:"Buca larga circa mezzo metro all'altezza del civico 24. Due auto ci sono già finite dentro stamattina, una ha bucato.",
+    storico:[{s:"nuova", t:"2026-08-27T07:42:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2600", cat:"Illuminazione", titolo:"Tre lampioni spenti sul lato del parco",
+    indirizzo:"Viale Rimembranza", lat:45.5602, lng:8.0549, stato:"nuova",
+    ts:"2026-08-27T06:15:00", anonima:true, cittadino:null, contatto:null,
+    foto:true, vocale:false,
+    testo:"Da lunedì sera i lampioni davanti all'ingresso del parco restano spenti. Al buio completo la sera è difficile passare a piedi.",
+    storico:[{s:"nuova", t:"2026-08-27T06:15:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2598", cat:"Rifiuti", titolo:"Abbandono di ingombranti vicino ai cassonetti",
+    indirizzo:"Via Martiri della Libertà 8", lat:45.5589, lng:8.0637, stato:"carico",
+    ts:"2026-08-26T18:30:00", anonima:false, cittadino:"Giovanni Perotti", contatto:"339 44 21 887",
+    foto:true, vocale:true,
+    testo:"Qualcuno ha lasciato un divano e due materassi a fianco della campana del vetro. Sono lì da tre giorni.",
+    storico:[{s:"carico", t:"2026-08-27T08:05:00", chi:"Ufficio tecnico"},
+             {s:"nuova",  t:"2026-08-26T18:30:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2596", cat:"Verde pubblico", titolo:"Ramo pericolante sopra i giochi",
+    indirizzo:"Giardini di Piazza Libertà", lat:45.5640, lng:8.0570, stato:"carico",
+    ts:"2026-08-26T15:10:00", anonima:false, cittadino:"Silvia Gallo", contatto:"s.gallo@email.it",
+    foto:true, vocale:false,
+    testo:"Un ramo grosso si è spezzato con il temporale ma è rimasto appeso, proprio sopra l'area giochi dei bambini.",
+    storico:[{s:"carico", t:"2026-08-26T16:40:00", chi:"Ufficio tecnico"},
+             {s:"nuova",  t:"2026-08-26T15:10:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2594", cat:"Degrado urbano", titolo:"Scritte sulla facciata della scuola elementare",
+    indirizzo:"Via Roma 12", lat:45.5615, lng:8.0522, stato:"nuova",
+    ts:"2026-08-26T11:20:00", anonima:true, cittadino:null, contatto:null,
+    foto:true, vocale:false,
+    testo:"Tutta la parete laterale della scuola è stata imbrattata nel fine settimana.",
+    storico:[{s:"nuova", t:"2026-08-26T11:20:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2591", cat:"Viabilità", titolo:"Segnale di stop piegato e poco visibile",
+    indirizzo:"Incrocio Via Cavour / Via Milano", lat:45.5673, lng:8.0498, stato:"risolta",
+    ts:"2026-08-24T09:05:00", anonima:false, cittadino:"Marco Ferrero", contatto:"m.ferrero@email.it",
+    foto:false, vocale:true,
+    testo:"Il palo del stop è piegato verso il marciapiede, chi arriva da Via Milano non lo vede finché non è all'incrocio.",
+    storico:[{s:"risolta", t:"2026-08-25T14:20:00", chi:"Squadra manutenzioni"},
+             {s:"carico",  t:"2026-08-24T10:15:00", chi:"Ufficio tecnico"},
+             {s:"nuova",   t:"2026-08-24T09:05:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2588", cat:"Ordine pubblico", titolo:"Schiamazzi notturni ripetuti in piazza",
+    indirizzo:"Piazza Vittorio Veneto", lat:45.5631, lng:8.0596, stato:"carico",
+    ts:"2026-08-23T23:40:00", anonima:true, cittadino:null, contatto:null,
+    foto:false, vocale:true,
+    testo:"Da tre weekend di fila gruppi in piazza fino alle tre di notte. Non è un'emergenza, ma succede ogni sabato.",
+    storico:[{s:"carico", t:"2026-08-24T09:00:00", chi:"Polizia locale"},
+             {s:"nuova",  t:"2026-08-23T23:40:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2585", cat:"Rifiuti", titolo:"Cestino divelto sul marciapiede",
+    indirizzo:"Via Garibaldi 40", lat:45.5567, lng:8.0605, stato:"risolta",
+    ts:"2026-08-22T16:50:00", anonima:false, cittadino:"Anna Vialardi", contatto:"340 55 90 118",
+    foto:true, vocale:false,
+    testo:"Il cestino è stato staccato dal palo e lasciato per terra, i rifiuti si stanno spargendo.",
+    storico:[{s:"risolta", t:"2026-08-23T11:30:00", chi:"Squadra manutenzioni"},
+             {s:"carico",  t:"2026-08-22T17:30:00", chi:"Ufficio tecnico"},
+             {s:"nuova",   t:"2026-08-22T16:50:00", chi:"Cittadino"}] },
+
+  { id:"RAD-2581", cat:"Degrado urbano", titolo:"Segnalazione non di competenza comunale",
+    indirizzo:"Strada provinciale 230", lat:45.5700, lng:8.0650, stato:"respinta",
+    ts:"2026-08-21T10:00:00", anonima:true, cittadino:null, contatto:null,
+    foto:false, vocale:false,
+    testo:"Guardrail danneggiato lungo la provinciale.",
+    storico:[{s:"respinta", t:"2026-08-21T12:10:00", chi:"Ufficio tecnico"},
+             {s:"nuova",    t:"2026-08-21T10:00:00", chi:"Cittadino"}] }
+];
+
+let selezionata = null;
+let filtroStato = null;
+
+/* ---------- Utility ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function quando(iso){
+  const d = new Date(iso), diff = (Date.now() - d) / 60000;
+  if (diff < 60) return Math.max(1, Math.round(diff)) + " min fa";
+  if (diff < 1440) return Math.round(diff/60) + " h fa";
+  if (diff < 2880) return "ieri";
+  return Math.round(diff/1440) + " giorni fa";
+}
+function dataEstesa(iso){
+  return new Date(iso).toLocaleString("it-IT",
+    { day:"2-digit", month:"long", year:"numeric", hour:"2-digit", minute:"2-digit" });
+}
+
+/* ---------- Scope radar ---------- */
+function disegnaBlips(){
+  const g = $("#blips");
+  const kmPerLat = 111, kmPerLng = 111 * Math.cos(MUNICIPIO.lat * Math.PI/180);
+  g.innerHTML = visibili().map(s => {
+    const dx = (s.lng - MUNICIPIO.lng) * kmPerLng;
+    const dy = (s.lat - MUNICIPIO.lat) * kmPerLat;
+    const x = 150 + Math.max(-1, Math.min(1, dx / RAGGIO_KM)) * 132;
+    const y = 150 - Math.max(-1, Math.min(1, dy / RAGGIO_KM)) * 132;
+    const c = STATI[s.stato].colore;
+    const on = selezionata === s.id ? " on" : "";
+    return `<g class="blip${on}" data-id="${s.id}" role="button" tabindex="0"
+              aria-label="${esc(s.titolo)}">
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${selezionata===s.id?7:4.5}"
+              fill="${c}" fill-opacity=".85"/>
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11" fill="${c}" fill-opacity=".13"/>
+    </g>`;
+  }).join("");
+}
+
+/* ---------- Filtri e lista ---------- */
+function visibili(){
+  const q = $("#q").value.trim().toLowerCase();
+  const cat = $("#cat").value;
+  return SEGNALAZIONI.filter(s =>
+    (!filtroStato || s.stato === filtroStato) &&
+    (!cat || s.cat === cat) &&
+    (!q || (s.titolo + s.indirizzo + s.id + s.testo).toLowerCase().includes(q))
+  );
+}
+
+function disegnaFiltri(){
+  const c = $("#filtri");
+  const righe = [["", "Tutte", SEGNALAZIONI.length, "var(--muted)"]].concat(
+    Object.entries(STATI).map(([k,v]) =>
+      [k, v.label, SEGNALAZIONI.filter(s => s.stato === k).length, v.colore])
+  );
+  c.innerHTML = righe.map(([k,lb,n,col]) => `
+    <button class="stat" data-stato="${k}" aria-pressed="${(filtroStato||"")===k}">
+      <span class="sq" style="background:${col}"></span>
+      <span class="lb">${lb}</span>
+      <span class="n">${n}</span>
+    </button>`).join("");
+}
+
+function disegnaLista(){
+  const el = $("#lista"), dati = visibili();
+  if (!dati.length){
+    el.innerHTML = `<div class="empty">
+      <strong>Nessuna segnalazione</strong>
+      Nessun risultato con questi filtri. Prova a togliere la ricerca o a scegliere "Tutte".
+    </div>`;
+    return;
   }
+  el.innerHTML = dati.map(s => {
+    const st = STATI[s.stato];
+    return `<button class="card ${selezionata===s.id?"on":""}" data-id="${s.id}"
+              style="border-left-color:${st.colore}">
+      <div class="card-top">
+        <span class="code">${s.id}</span>
+        <span class="badge" style="color:${st.colore}">${st.label}</span>
+        <span class="when">${quando(s.ts)}</span>
+      </div>
+      <h3>${esc(s.titolo)}</h3>
+      <p class="addr">${esc(s.indirizzo)}</p>
+      <div class="tags">
+        <span class="tag">${esc(s.cat)}</span>
+        ${s.foto ? '<span class="tag">Foto</span>' : ""}
+        ${s.vocale ? '<span class="tag">Vocale</span>' : ""}
+        ${s.anonima ? '<span class="tag anon">Anonima</span>' : ""}
+      </div>
+    </button>`;
+  }).join("");
 }
 
-function logout(){
-  document.getElementById('dashboard').style.display='none';
-  document.getElementById('login-overlay').style.display='flex';
-  document.getElementById('pwd').value='';
-  document.getElementById('login-err').style.display='none';
+/* ---------- Dettaglio ---------- */
+function disegnaDettaglio(){
+  const box = $("#dettaglio");
+  const s = SEGNALAZIONI.find(x => x.id === selezionata);
+  if (!s){
+    box.innerHTML = `<div class="placeholder">
+      <svg width="46" height="46" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#1C2A38" stroke-width="1.5"/>
+        <circle cx="20" cy="20" r="11" fill="none" stroke="#1C2A38" stroke-width="1.5"/>
+        <circle cx="20" cy="20" r="2.4" fill="#1C2A38"/>
+      </svg>
+      <p>Scegli una segnalazione dall'elenco o un punto sul radar per vederne il dettaglio.</p>
+    </div>`;
+    return;
+  }
+  const st = STATI[s.stato];
+  const onde = Array.from({length: 34}, () =>
+    `<span style="height:${(Math.random()*16+4).toFixed(0)}px"></span>`).join("");
+
+  box.innerHTML = `<div class="detail">
+    <div class="detail-head">
+      <span class="code">${s.id} · ${esc(s.cat)}</span>
+      <h2>${esc(s.titolo)}</h2>
+      <span class="badge" style="color:${st.colore}">${st.label}</span>
+      <span class="when" style="margin-left:8px">${dataEstesa(s.ts)}</span>
+    </div>
+
+    ${s.foto ? `<div class="media">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/>
+          <path d="M8 6l1.5-2h5L16 6"/></svg>
+        <span class="mono">Foto allegata dal cittadino</span>
+      </div>` : ""}
+
+    ${s.vocale ? `<div class="audio">
+        <button class="play" aria-label="Riproduci messaggio vocale">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1l9 5-9 5z"/></svg>
+        </button>
+        <div class="wave" aria-hidden="true">${onde}</div>
+        <span class="code">0:24</span>
+      </div>` : ""}
+
+    <div class="field">
+      <div class="k">Descrizione</div>
+      <div class="quote">${esc(s.testo)}</div>
+    </div>
+
+    <div class="field">
+      <div class="k">Posizione</div>
+      <div class="v">${esc(s.indirizzo)}</div>
+      <div class="v mono" style="color:var(--muted);margin-top:3px">${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}</div>
+    </div>
+
+    <div class="field">
+      <div class="k">Chi ha segnalato</div>
+      <div class="v">${s.anonima
+        ? '<span style="color:var(--carico)">Segnalazione anonima</span> — nessun recapito disponibile'
+        : esc(s.cittadino) + '<br><span class="mono" style="color:var(--muted)">' + esc(s.contatto) + '</span>'}</div>
+    </div>
+
+    <div class="field">
+      <div class="k">Storico</div>
+      <ul class="timeline">
+        ${s.storico.map(h => `<li>
+          <div class="t">${STATI[h.s].label}</div>
+          <div class="m">${dataEstesa(h.t)} · ${esc(h.chi)}</div>
+        </li>`).join("")}
+      </ul>
+    </div>
+
+    <div class="field">
+      <div class="k">Nota interna</div>
+      <textarea class="note" placeholder="Visibile solo agli operatori del comune"></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="act primary" data-azione="carico" ${s.stato!=="nuova"?"disabled":""}>Prendi in carico</button>
+      <button class="act ok" data-azione="risolta" ${s.stato==="risolta"||s.stato==="respinta"?"disabled":""}>Segna risolta</button>
+      <button class="act no wide" data-azione="respinta" ${s.stato==="respinta"?"disabled":""}>Respingi — non di competenza</button>
+    </div>
+  </div>`;
 }
 
-function showTab(name,btn){
-  document.querySelectorAll('.view').forEach(function(v){v.style.display='none';v.classList.remove('on');});
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-  var el=document.getElementById('v-'+name);el.style.display='block';el.classList.add('on');
-  btn.classList.add('active');
+function cambiaStato(nuovo){
+  const s = SEGNALAZIONI.find(x => x.id === selezionata);
+  if (!s) return;
+  s.stato = nuovo;
+  s.storico.unshift({ s:nuovo, t:new Date().toISOString(), chi:"Ufficio tecnico" });
+  render();
 }
 
-function filtra(tipo,chip){
-  document.querySelectorAll('.fchip').forEach(function(c){c.classList.remove('active');});
-  chip.classList.add('active');
-  document.querySelectorAll('.seg').forEach(function(s){
-    if(tipo==='tutti'){s.style.display='';return;}
-    if(tipo==='alta') s.style.display=s.dataset.u==='alta'?'':'none';
-    else if(tipo==='nuova') s.style.display=s.dataset.s==='nuova'?'':'none';
-    else if(tipo==='ordine') s.style.display=s.dataset.cat==='ordine'?'':'none';
-    else if(tipo==='degrado') s.style.display=s.dataset.cat==='degrado'?'':'none';
-  });
+/* ---------- CSV ---------- */
+function esportaCsv(){
+  const righe = [["Codice","Data","Categoria","Stato","Titolo","Indirizzo","Lat","Lng","Anonima","Descrizione"]]
+    .concat(visibili().map(s => [
+      s.id, dataEstesa(s.ts), s.cat, STATI[s.stato].label, s.titolo,
+      s.indirizzo, s.lat, s.lng, s.anonima ? "Sì" : "No", s.testo
+    ]));
+  const csv = "\uFEFF" + righe.map(r =>
+    r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type:"text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `radar-segnalazioni-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
-function cambiaStato(sel){
-  var seg=sel.closest('.seg');
-  var b=seg.querySelectorAll('.badge')[1];
-  var v=sel.value;
-  b.className='badge';
-  if(v==='Nuova'){b.classList.add('b-nuova');b.textContent='Nuova';seg.dataset.s='nuova';}
-  else if(v==='Presa in carico'){b.classList.add('b-presa');b.textContent='Presa in carico';seg.dataset.s='presa';}
-  else{b.classList.add('b-chiusa');b.textContent='Chiusa';seg.dataset.s='chiusa';}
+/* ---------- Render + eventi ---------- */
+function render(){
+  disegnaFiltri();
+  disegnaLista();
+  disegnaBlips();
+  disegnaDettaglio();
 }
 
-function inviaEmail(){
-  var oggi=new Date().toLocaleDateString('it-IT');
-  var body='Report segnalazioni Il tuo Comune — '+oggi+'\n\nTotale: 6\nAlta urgenza: 2\nChiuse: 2\nAncora aperte: 4';
-  window.location.href='mailto:sindaco@comune.biella.it?subject='+encodeURIComponent('Report segnalazioni '+oggi)+'&body='+encodeURIComponent(body);
+function apri(id){
+  selezionata = id;
+  render();
+  if (window.innerWidth <= 980) $("#pannello").classList.add("open");
 }
+
+document.addEventListener("click", e => {
+  const stat = e.target.closest(".stat");
+  if (stat){ filtroStato = stat.dataset.stato || null; render(); return; }
+
+  const card = e.target.closest(".card");
+  if (card){ apri(card.dataset.id); return; }
+
+  const blip = e.target.closest(".blip");
+  if (blip){ apri(blip.dataset.id); return; }
+
+  const act = e.target.closest(".act");
+  if (act && !act.disabled){ cambiaStato(act.dataset.azione); return; }
+
+  if (e.target.closest("#btnCsv")) esportaCsv();
+  if (e.target.closest("#btnChiudi")) $("#pannello").classList.remove("open");
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " "){
+    const blip = e.target.closest?.(".blip");
+    if (blip){ e.preventDefault(); apri(blip.dataset.id); }
+  }
+  if (e.key === "Escape") $("#pannello").classList.remove("open");
+});
+
+$("#q").addEventListener("input", () => { disegnaLista(); disegnaBlips(); });
+$("#cat").addEventListener("change", () => { disegnaLista(); disegnaBlips(); });
+
+// popola le categorie dai dati
+[...new Set(SEGNALAZIONI.map(s => s.cat))].sort().forEach(c => {
+  const o = document.createElement("option");
+  o.value = o.textContent = c;
+  $("#cat").appendChild(o);
+});
+
+render();
 </script>
 </body>
 </html>
