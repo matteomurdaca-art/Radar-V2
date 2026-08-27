@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Dashboard — Comune di Biella</title>
+<title>Dashboard — Il tuo Comune</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -96,7 +96,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="login-card">
     <span class="login-logo">🏛️</span>
     <div class="login-title">Area riservata</div>
-    <div class="login-sub">Comune di Biella — Gestione segnalazioni</div>
+    <div class="login-sub">Il tuo Comune — Gestione segnalazioni</div>
     <input type="password" id="pwd" placeholder="Password" onkeydown="if(event.key==='Enter')login()"/>
     <div class="login-err" id="login-err">Password errata. Riprova.</div>
     <button class="btn-login" onclick="login()">Accedi</button>
@@ -352,7 +352,7 @@ function cambiaStato(sel){
 
 function inviaEmail(){
   var oggi=new Date().toLocaleDateString('it-IT');
-  var body='Report segnalazioni Comune di Biella — '+oggi+'\n\nTotale: 6\nAlta urgenza: 2\nChiuse: 2\nAncora aperte: 4';
+  var body='Report segnalazioni Il tuo Comune — '+oggi+'\n\nTotale: 6\nAlta urgenza: 2\nChiuse: 2\nAncora aperte: 4';
   window.location.href='mailto:sindaco@comune.biella.it?subject='+encodeURIComponent('Report segnalazioni '+oggi)+'&body='+encodeURIComponent(body);
 }
 </script>
