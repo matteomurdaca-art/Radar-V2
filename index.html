@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>SIGNAL — Segnalazioni cittadini</title>
+<title>RADAR — Segnalazioni cittadini</title>
 <meta name="description" content="Segnala problemi al Comune in pochi secondi dal tuo smartphone."/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -102,16 +102,17 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
   <div class="top-row">
     <div class="signal-logo">
       <svg class="signal-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="28" height="28" rx="7" fill="#00E5FF" fill-opacity="0.15"/>
-        <polygon points="16,3 8,16 13,16 12,25 20,12 15,12" fill="#00E5FF"/>
-        <defs>
-          <filter id="glow2">
-            <feGaussianBlur stdDeviation="1.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
+        <rect width="28" height="28" rx="7" fill="#00E5FF" fill-opacity="0.12"/>
+        <circle cx="14" cy="15" r="11" stroke="#00E5FF" stroke-width="1" stroke-opacity="0.3" fill="none"/>
+        <circle cx="14" cy="15" r="7.5" stroke="#00E5FF" stroke-width="1" stroke-opacity="0.5" fill="none"/>
+        <circle cx="14" cy="15" r="4" stroke="#00E5FF" stroke-width="1" stroke-opacity="0.8" fill="none"/>
+        <line x1="14" y1="15" x2="14" y2="4" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="14" y1="15" x2="22" y2="10" stroke="#00E5FF" stroke-width="1" stroke-opacity="0.4" stroke-linecap="round"/>
+        <circle cx="14" cy="15" r="1.5" fill="#00E5FF"/>
+        <circle cx="20" cy="8" r="1.5" fill="#00E5FF" opacity="0.9"/>
+        <circle cx="20" cy="8" r="3" stroke="#00E5FF" stroke-width="0.5" stroke-opacity="0.4" fill="none"/>
       </svg>
-      <div class="signal-name">S<span>IGN</span>AL</div>
+      <div class="signal-name">R<span>ADA</span>R</div>
     </div>
     <div class="geo-badge" id="geo-badge">⏳ Posizione...</div>
   </div>
@@ -221,7 +222,7 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
   </div>
 </main>
 
-<footer class="footer">SIGNAL — Comune di Biella | <a href="#">Privacy</a></footer>
+<footer class="footer">RADAR — Comune di Biella | <a href="#">Privacy</a></footer>
 
 <script>
 /*
@@ -363,7 +364,7 @@ function invia(){
   var num='SEG-'+anno+'-'+rand;
 
   var payload={
-    '_subject':'⚡ SIGNAL — Segnalazione '+num+' | '+catSel+' | '+urgSel+' urgenza',
+    '_subject':'🎯 RADAR — Segnalazione '+num+' | '+catSel+' | '+urgSel+' urgenza',
     'Numero pratica':num,
     'Categoria':catSel,
     'Urgenza':urgSel,
