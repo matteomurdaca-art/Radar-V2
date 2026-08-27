@@ -39,6 +39,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .fg input:focus,.fg textarea:focus{outline:none;border-color:var(--neon);box-shadow:0 0 0 2px var(--neon-l);}
 .fg textarea{min-height:90px;resize:none;}
 .optional{font-size:11px;color:var(--hint);margin-left:4px;}
+.intro{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:18px;}
+.nota-resp{font-size:12px;color:var(--hint);line-height:1.55;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin:4px 0 6px;}
+.avviso-op{display:none;font-size:12.5px;color:var(--arancio);line-height:1.55;background:var(--arancio-l);border:1px solid rgba(255,176,32,0.3);border-radius:8px;padding:11px 13px;margin:-6px 0 16px;}
+.avviso-op.on{display:block;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;}
 .sel-card{border:1.5px solid var(--border-strong);border-radius:var(--radius);padding:13px 8px;text-align:center;cursor:pointer;background:var(--card);transition:all .15s;}
 .sel-card .ico{font-size:26px;display:block;margin-bottom:6px;}
@@ -130,21 +134,21 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
 
   <!-- STEP 1 -->
   <div id="s1" style="display:block;">
-    <h2 class="stitle">Come vuoi segnalare?</h2>
-    <div class="grid2">
-      <div class="sel-card" id="an1" onclick="selAnon('an1','Anonimo')">
-        <span class="ico">🕵️</span><strong>Anonimo</strong><small>Nessun dato richiesto</small>
-      </div>
-      <div class="sel-card" id="an2" onclick="selAnon('an2','Identificato')">
-        <span class="ico">👤</span><strong>Con i miei dati</strong><small>Ricevi aggiornamenti</small>
-      </div>
+    <h2 class="stitle">I tuoi dati</h2>
+    <p class="intro">Il Comune ha bisogno di sapere chi segnala: serve per aggiornarti quando la segnalazione viene presa in carico e risolta, e per chiederti chiarimenti se qualcosa non è chiaro.</p>
+    <div class="fg">
+      <label for="nome">Nome e cognome *</label>
+      <input type="text" id="nome" placeholder="Mario Rossi" autocomplete="name" oninput="validaDati()"/>
     </div>
-    <div class="err" id="err1">Scegli come vuoi segnalare.</div>
-    <div id="dati-box" style="display:none;margin-top:14px;">
-      <div class="fg"><label>Nome e cognome <span class="optional">(opzionale)</span></label><input type="text" id="nome" placeholder="Mario Rossi" autocomplete="name"/></div>
-      <div class="fg"><label>Telefono o email</label><input type="tel" id="contatto" placeholder="+39 015 000000" autocomplete="tel"/></div>
+    <div class="fg">
+      <label for="contatto">Telefono o email *</label>
+      <input type="text" id="contatto" placeholder="015 000000 oppure mario.rossi@email.it" autocomplete="email" inputmode="email" oninput="validaDati()"/>
     </div>
-    <button class="btn-next" onclick="next(1)">Avanti →</button>
+    <div class="nota-resp">
+      I tuoi dati sono visibili solo agli uffici del Comune e non compaiono in nessuna pagina pubblica. Le segnalazioni palesemente false o inviate per danneggiare qualcuno possono comportare conseguenze.
+    </div>
+    <div class="err" id="err1">Inserisci il tuo nome e un recapito valido per continuare.</div>
+    <button class="btn-next" id="btn1" onclick="next(1)" disabled>Avanti →</button>
   </div>
 
   <!-- STEP 2 -->
@@ -152,10 +156,11 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
     <h2 class="stitle">Cosa vuoi segnalare?</h2>
     <div class="cat-grid">
       <div class="cat-card" id="c1" onclick="selCat('c1','Degrado urbano')"><span class="ico">🛣️</span><strong>Degrado urbano</strong><small>Buche, rifiuti, guasti</small></div>
-      <div class="cat-card" id="c2" onclick="selCat('c2','Ordine pubblico')"><span class="ico">🚨</span><strong>Ordine pubblico</strong><small>Persone moleste, sospetti</small></div>
+      <div class="cat-card" id="c2" onclick="selCat('c2','Ordine pubblico')"><span class="ico">🚨</span><strong>Ordine pubblico</strong><small>Schiamazzi, situazioni moleste</small></div>
       <div class="cat-card" id="c3" onclick="selCat('c3','Viabilità')"><span class="ico">🚗</span><strong>Viabilità</strong><small>Parcheggio, segnaletica</small></div>
       <div class="cat-card" id="c4" onclick="selCat('c4','Altro')"><span class="ico">⚙️</span><strong>Altro</strong><small>Specifica nella descrizione</small></div>
     </div>
+    <div class="avviso-op" id="avviso-op">Descrivi la situazione, non le persone. Evita nomi, targhe e accuse verso singoli. Se ritieni che sia stato commesso un reato, rivolgiti alle forze dell'ordine: questa app non sostituisce una denuncia.</div>
     <p style="font-size:13px;color:var(--muted);font-weight:500;margin-bottom:8px;">Urgenza *</p>
     <div class="urg-grid">
       <div class="urg-card" id="u1" onclick="selUrg('u1','Alta','a')"><span class="ico">⚠️</span><strong>Alta</strong><small>Rischio immediato</small></div>
@@ -204,7 +209,7 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
       <div class="rr"><span>Tipo</span><strong id="r-cat">—</strong></div>
       <div class="rr"><span>Urgenza</span><strong id="r-urg">—</strong></div>
       <div class="rr"><span>Allegati</span><strong id="r-media">—</strong></div>
-      <div class="rr"><span>Modalità</span><strong id="r-anon">—</strong></div>
+      <div class="rr"><span>Segnalato da</span><strong id="r-anon">—</strong></div>
     </div>
     <button class="btn-next" id="btn-invia" onclick="invia()">⚡ Invia segnalazione</button>
     <button class="btn-back" onclick="back(4)">← Modifica</button>
@@ -235,7 +240,7 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
 */
 var FORMSPREE_ID = 'xqpkzeql';
 
-var anonSel='',catSel='',urgSel='',fotoB64='',recFatto=false;
+var catSel='',urgSel='',fotoBlob=null,recFatto=false;
 var mediaRec=null,audioChunks=[],audioBlob=null;
 var geoLat='',geoLng='',geoTxt='Posizione GPS rilevata';
 
@@ -262,18 +267,25 @@ function showErr(id){
   setTimeout(function(){e.style.display='none';},3000);
 }
 
-/* --- STEP 1 --- */
-function selAnon(id,val){
-  document.querySelectorAll('.sel-card').forEach(function(c){c.classList.remove('sel');});
-  document.getElementById(id).classList.add('sel');
-  anonSel=val;
-  document.getElementById('dati-box').style.display=val==='Identificato'?'block':'none';
+/* --- STEP 1: dati di contatto obbligatori --- */
+function contattoValido(v){
+  v=(v||'').trim();
+  if(v.indexOf('@')>0) return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v);
+  return (v.replace(/\D/g,'').length>=8);
+}
+function datiOk(){
+  var n=document.getElementById('nome').value.trim();
+  return (n.length>=3 && n.indexOf(' ')>0 && contattoValido(document.getElementById('contatto').value));
+}
+function validaDati(){
+  document.getElementById('btn1').disabled=!datiOk();
 }
 
 /* --- STEP 2 --- */
 function selCat(id,val){
   document.querySelectorAll('.cat-card').forEach(function(c){c.classList.remove('sel');});
   document.getElementById(id).classList.add('sel');catSel=val;
+  document.getElementById('avviso-op').classList.toggle('on', val==='Ordine pubblico');
 }
 function selUrg(id,val,lv){
   document.querySelectorAll('.urg-card').forEach(function(c){c.className='urg-card';});
@@ -286,26 +298,27 @@ function fotoSelezionata(input){
   var file=input.files[0];
   var reader=new FileReader();
   reader.onload=function(e){
-    // Comprimi l'immagine prima di inviarla
     var img=new Image();
     img.onload=function(){
       var canvas=document.createElement('canvas');
-      var MAX=1024; // max larghezza/altezza in pixel
+      var MAX=1024;
       var w=img.width, h=img.height;
       if(w>h){if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}}
       else{if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}}
       canvas.width=w;canvas.height=h;
       var ctx=canvas.getContext('2d');
       ctx.drawImage(img,0,0,w,h);
-      // Qualità 0.7 = buona qualità ma file piccolo (~100-300KB)
-      fotoB64=canvas.toDataURL('image/jpeg',0.7);
-      var preview=document.getElementById('foto-preview');
-      preview.src=fotoB64;preview.style.display='block';
-      var btn=document.getElementById('foto-btn');
-      btn.classList.add('done');
-      document.getElementById('foto-ico').textContent='✅';
-      document.getElementById('foto-lbl').textContent='Foto aggiunta';
-      document.getElementById('foto-sub').textContent='Tocca per cambiare';
+      // Blob reale per l'allegato email
+      canvas.toBlob(function(blob){
+        fotoBlob=blob;
+        var preview=document.getElementById('foto-preview');
+        preview.src=URL.createObjectURL(blob);preview.style.display='block';
+        var btn=document.getElementById('foto-btn');
+        btn.classList.add('done');
+        document.getElementById('foto-ico').textContent='✅';
+        document.getElementById('foto-lbl').textContent='Foto aggiunta';
+        document.getElementById('foto-sub').textContent='Tocca per cambiare';
+      },'image/jpeg',0.7);
     };
     img.src=e.target.result;
   };
@@ -349,17 +362,17 @@ function toggleRec(){
 
 /* --- NAVIGAZIONE --- */
 function next(from){
-  if(from===1){if(!anonSel){showErr('err1');return;}}
+  if(from===1){if(!datiOk()){showErr('err1');return;}}
   if(from===2){
     if(!catSel||!urgSel){showErr('err2');return;}
     document.getElementById('r-cat').textContent=catSel;
     document.getElementById('r-urg').textContent=urgSel+' urgenza';
-    document.getElementById('r-anon').textContent=anonSel;
+    document.getElementById('r-anon').textContent=document.getElementById('nome').value.trim();
     document.getElementById('geo-label').textContent=geoTxt;
   }
   if(from===3){
     var media=[];
-    if(fotoB64) media.push('Foto');
+    if(fotoBlob) media.push('Foto');
     if(recFatto) media.push('Vocale');
     if(document.getElementById('desc').value.trim()) media.push('Testo');
     if(media.length===0){showErr('err3');return;}
@@ -377,27 +390,29 @@ function invia(){
   var rand=Math.floor(Math.random()*9000+1000);
   var num='SEG-'+anno+'-'+rand;
 
-  var payload={
-    '_subject':'🎯 RADAR — Segnalazione '+num+' | '+catSel+' | '+urgSel+' urgenza',
-    'Numero pratica':num,
-    'Categoria':catSel,
-    'Urgenza':urgSel,
-    'Modalità':anonSel,
-    'Nome':document.getElementById('nome').value||'Anonimo',
-    'Contatto':document.getElementById('contatto').value||'—',
-    'Descrizione':document.getElementById('desc').value||'—',
-    'Posizione GPS':geoTxt,
-    'Latitudine':geoLat||'—',
-    'Longitudine':geoLng||'—',
-    'Data e ora':new Date().toLocaleString('it-IT'),
-    'Foto':fotoB64?'Sì (allegata)':'No',
-    'Vocale':recFatto?'Sì':'No'
-  };
+  var fd=new FormData();
+  fd.append('_subject','🎯 RADAR — Segnalazione '+num+' | '+catSel+' | '+urgSel+' urgenza');
+  fd.append('Numero pratica',num);
+  fd.append('Categoria',catSel);
+  fd.append('Urgenza',urgSel);
+  fd.append('Nome',document.getElementById('nome').value.trim());
+  fd.append('Contatto',document.getElementById('contatto').value.trim());
+  fd.append('Descrizione',document.getElementById('desc').value||'—');
+  fd.append('Posizione GPS',geoTxt);
+  fd.append('Latitudine',geoLat||'—');
+  fd.append('Longitudine',geoLng||'—');
+  fd.append('Data e ora',new Date().toLocaleString('it-IT'));
+  fd.append('Foto',fotoBlob?'Sì (vedi allegato)':'No');
+  fd.append('Vocale',audioBlob?'Sì (vedi allegato)':'No');
+
+  // Allegati veri: la foto e l'audio vengono inviati come file reali
+  if(fotoBlob) fd.append('foto', fotoBlob, 'foto-'+num+'.jpg');
+  if(audioBlob) fd.append('vocale', audioBlob, 'vocale-'+num+'.webm');
 
   fetch('https://formspree.io/f/'+FORMSPREE_ID,{
     method:'POST',
-    headers:{'Content-Type':'application/json','Accept':'application/json'},
-    body:JSON.stringify(payload)
+    headers:{'Accept':'application/json'},
+    body:fd
   })
   .then(function(res){
     if(res.ok){
