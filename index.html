@@ -75,6 +75,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .rec-btn .txt span{display:block;font-size:14px;color:var(--text);}
 .rec-btn .txt small{display:block;font-size:11px;color:var(--hint);}
 .rec-btn.recording{border-color:var(--rosso);background:var(--rosso-l);}
+.trascr{display:none;background:var(--card);border:1px solid var(--border-strong);border-radius:8px;padding:11px 12px;margin:-4px 0 12px;}
+.trascr.on{display:block;}
+.trascr .lab{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--neon);margin-bottom:5px;}
+.trascr .txt{font-size:13px;line-height:1.5;color:var(--text);min-height:18px;}
+.trascr .txt em{color:var(--hint);font-style:normal;}
+.trascr .nota{font-size:11px;color:var(--hint);margin-top:7px;line-height:1.4;}
 .rec-btn.done-r{border-color:var(--verde);background:var(--verde-l);}
 audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
 .riepilogo{background:var(--card);border:1px solid var(--border-strong);border-radius:var(--radius);overflow:hidden;margin-bottom:18px;}
@@ -192,6 +198,11 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
       </div>
     </div>
     <audio id="audio-player" controls></audio>
+    <div class="trascr" id="trascr">
+      <div class="lab">Trascrizione automatica</div>
+      <div class="txt" id="trascr-txt"><em>In ascolto...</em></div>
+      <div class="nota" id="trascr-nota">Il testo viene copiato nella descrizione qui sotto. Rileggilo e correggilo se serve.</div>
+    </div>
     <div class="fg">
       <label>Descrizione <span class="optional">(opzionale se hai foto/audio)</span></label>
       <textarea id="desc" placeholder="Aggiungi dettagli utili..."></textarea>
@@ -329,6 +340,60 @@ function fotoSelezionata(input){
   reader.readAsDataURL(file);
 }
 
+/* --- TRASCRIZIONE VOCALE (riconoscimento del browser) --- */
+var Recog = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+var recog = null, trascrittoFinale = '';
+
+function avviaTrascrizione(){
+  if(!Recog) return;
+  trascrittoFinale = '';
+  try{ recog = new Recog(); }catch(e){ recog = null; return; }
+  recog.lang = 'it-IT';
+  recog.continuous = true;
+  recog.interimResults = true;
+  recog.onresult = function(ev){
+    var provvisorio = '';
+    for(var i = ev.resultIndex; i < ev.results.length; i++){
+      var t = ev.results[i][0].transcript;
+      if(ev.results[i].isFinal) trascrittoFinale += t + ' ';
+      else provvisorio += t;
+    }
+    mostraTrascrizione(trascrittoFinale + provvisorio, !!provvisorio);
+  };
+  recog.onerror = function(){};
+  try{ recog.start(); }catch(e){}
+  document.getElementById('trascr').classList.add('on');
+  mostraTrascrizione('', true);
+}
+
+function mostraTrascrizione(testo, parziale){
+  var box = document.getElementById('trascr-txt');
+  if(!testo.trim()){ box.innerHTML = '<em>In ascolto...</em>'; return; }
+  box.textContent = testo.trim() + (parziale ? '…' : '');
+}
+
+function chiudiTrascrizione(){
+  if(recog){ try{ recog.stop(); }catch(e){} recog = null; }
+  var testo = trascrittoFinale.trim();
+  var nota = document.getElementById('trascr-nota');
+  if(!Recog){
+    document.getElementById('trascr').classList.add('on');
+    document.getElementById('trascr-txt').innerHTML =
+      '<em>Questo browser non trascrive il parlato. Il vocale resta allegato e sara ascoltato dall\'operatore.</em>';
+    nota.textContent = '';
+    return;
+  }
+  if(!testo){
+    document.getElementById('trascr-txt').innerHTML =
+      '<em>Non sono riuscito a trascrivere. Il vocale resta allegato.</em>';
+    nota.textContent = '';
+    return;
+  }
+  mostraTrascrizione(testo, false);
+  var desc = document.getElementById('desc');
+  desc.value = desc.value.trim() ? desc.value.trim() + ' ' + testo : testo;
+}
+
 /* --- VOCALE REALE --- */
 function toggleRec(){
   var btn=document.getElementById('rec-btn');
@@ -349,8 +414,10 @@ function toggleRec(){
         document.getElementById('rec-sub').textContent='Tocca per una nuova registrazione';
         recFatto=true;mediaRec=null;
         stream.getTracks().forEach(function(t){t.stop();});
+        chiudiTrascrizione();
       };
       mediaRec.start();
+      avviaTrascrizione();
       btn.classList.add('recording');
       document.getElementById('rec-ico').textContent='⏹️';
       document.getElementById('rec-lbl').textContent='Registrazione in corso...';

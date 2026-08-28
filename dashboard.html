@@ -52,6 +52,7 @@ button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;backgrou
   font-family:var(--display);font-weight:700;font-size:19px;
   letter-spacing:.22em;margin:0;
 }
+.brand h1 span{color:var(--ciano)}
 .brand .sub{
   font-family:var(--mono);font-size:10px;color:var(--muted);
   letter-spacing:.12em;text-transform:uppercase;margin-top:-2px;
@@ -329,13 +330,13 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
       <circle cx="20" cy="20" r="2.4" fill="#00E5FF"/>
     </svg>
     <div>
-      <h1>RADAR</h1>
+      <h1>R<span>ADA</span>R</h1>
       <div class="sub">Dashboard comunale</div>
     </div>
   </div>
   <div class="live"><span class="dot"></span> In ascolto</div>
   <div class="comune">
-    <div class="nome" id="nomeComune">Comune di Verrone</div>
+    <div class="nome" id="nomeComune">Comune DEMO</div>
     <div class="ruolo" id="ruoloOperatore">non connesso</div>
   </div>
 </header>
@@ -523,11 +524,14 @@ function api(path, opts, giaRiprovato){
 
 /* ---------- Caricamento dati ---------- */
 function sintesi(testo){
-  const t = String(testo || "").trim().replace(/\s+/g, " ");
+  let t = String(testo || "").trim().replace(/\s+/g, " ");
   if (!t) return "Segnalazione senza descrizione";
-  const punto = t.indexOf(". ");
-  if (punto > 12 && punto < 80) return t.slice(0, punto);
-  return t.length > 78 ? t.slice(0, 75) + "…" : t;
+  // toglie gli attacchi parlati tipici del vocale
+  t = t.replace(/^(ok|ecco|allora|buongiorno|buonasera|salve|senta|guardi|volevo segnalare che|volevo segnalare|vorrei segnalare che|vorrei segnalare|segnalo che|segnalo|praticamente)[,\s]+/i, "");
+  const punto = t.search(/[.!?]\s/);
+  if (punto > 12 && punto < 90) t = t.slice(0, punto);
+  else if (t.length > 82) t = t.slice(0, 79).replace(/\s+\S*$/, "") + "…";
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 function mappa(r, logs){
