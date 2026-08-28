@@ -268,9 +268,57 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
 }
+
+/* --- Accesso operatori --- */
+.login{position:fixed;inset:0;z-index:200;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.login[hidden]{display:none}
+.login-box{width:100%;max-width:360px;background:var(--panel);
+  border:1px solid var(--linea);border-radius:14px;padding:26px 24px}
+.login-box h2{font-family:var(--display);font-size:19px;margin:14px 0 4px;font-weight:500}
+.login-box p{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 18px}
+.login-box label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+.login-box input{width:100%;box-sizing:border-box;background:#0B131C;color:var(--testo);
+  border:1px solid var(--linea);border-radius:9px;padding:10px 12px;font:inherit;font-size:14px}
+.login-box input:focus{outline:none;border-color:var(--ciano)}
+.login-box button{width:100%;margin-top:20px;background:var(--ciano);color:#06131A;
+  border:0;border-radius:9px;padding:11px;font:inherit;font-weight:600;cursor:pointer}
+.login-box button:disabled{opacity:.6;cursor:default}
+.login-err{margin-top:14px;background:rgba(255,90,90,.09);border:1px solid rgba(255,90,90,.32);
+  color:#FF9B9B;border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45}
+.login-err[hidden]{display:none}
+
+/* --- Elementi aggiunti al dettaglio --- */
+.esci{background:none;border:0;color:var(--ciano);font:inherit;font-size:12px;
+  cursor:pointer;padding:0;text-decoration:underline}
+.media-box img{width:100%;border-radius:10px;border:1px solid var(--linea);display:block}
+.maplink{display:inline-block;margin-top:6px;color:var(--ciano);font-size:12.5px;text-decoration:none}
+.maplink:hover{text-decoration:underline}
+.err-azione{margin-top:12px;background:rgba(255,90,90,.09);border:1px solid rgba(255,90,90,.32);
+  color:#FF9B9B;border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45}
+.err-azione[hidden]{display:none}
 </style>
 </head>
 <body>
+<div class="login" id="login" hidden>
+  <form class="login-box" id="loginForm">
+    <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r="18" fill="none" stroke="#00E5FF" stroke-opacity=".22" stroke-width="1.5"/>
+      <circle cx="20" cy="20" r="12" fill="none" stroke="#00E5FF" stroke-opacity=".38" stroke-width="1.5"/>
+      <circle cx="20" cy="20" r="6" fill="none" stroke="#00E5FF" stroke-opacity=".6" stroke-width="1.5"/>
+      <circle cx="20" cy="20" r="2.4" fill="#00E5FF"/>
+    </svg>
+    <h2>Accesso operatori</h2>
+    <p>Le segnalazioni dei cittadini sono riservate al personale del Comune.</p>
+    <label for="lgEmail">Email</label>
+    <input id="lgEmail" type="email" autocomplete="username" required>
+    <label for="lgPw">Password</label>
+    <input id="lgPw" type="password" autocomplete="current-password" required>
+    <button type="submit" id="lgBtn">Entra</button>
+    <div class="login-err" id="lgErr" hidden></div>
+  </form>
+</div>
+
 
 <header class="topbar">
   <div class="brand">
@@ -288,7 +336,7 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
   <div class="live"><span class="dot"></span> In ascolto</div>
   <div class="comune">
     <div class="nome" id="nomeComune">Comune di Verrone</div>
-    <div class="ruolo">Ufficio tecnico · M. Rossi</div>
+    <div class="ruolo" id="ruoloOperatore">non connesso</div>
   </div>
 </header>
 
@@ -352,13 +400,20 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 <script>
 /* =========================================================
    RADAR — Dashboard comunale
-   Dati dimostrativi in memoria. Per collegare le segnalazioni
-   reali, sostituire l'array SEGNALAZIONI con i dati provenienti
-   dal backend (o da un file JSON) mantenendo la stessa struttura.
+   Collegata a Supabase. Accesso riservato agli operatori.
+
+   >>> COMPILARE LE DUE RIGHE QUI SOTTO <<<
+   Sono gli stessi due valori usati nell'app del cittadino:
+   SUPABASE_URL = Project URL   (es. https://abcdefgh.supabase.co)
+   SUPABASE_KEY = chiave pubblica (anon public / publishable)
    ========================================================= */
+
+var SUPABASE_URL = 'https://niyotnrttnklpqyylfmq.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_xnZuoub2QFpYMtEMgdOmHg_I7_j4nHH';
 
 const MUNICIPIO = { lat: 45.5628, lng: 8.0583 }; // centro dello scope
 const RAGGIO_KM = 3;
+const RICARICA_MS = 60000;                       // aggiornamento automatico
 
 const STATI = {
   nuova:    { label: "Nuova",       colore: "var(--nuova)"   },
@@ -367,81 +422,11 @@ const STATI = {
   respinta: { label: "Respinta",    colore: "var(--respinta)"}
 };
 
-const SEGNALAZIONI = [
-  { id:"RAD-2601", cat:"Viabilità", titolo:"Buca profonda in mezzo alla carreggiata",
-    indirizzo:"Via Circonvallazione 24", lat:45.5651, lng:8.0611, stato:"nuova",
-    ts:"2026-08-27T07:42:00", anonima:false, cittadino:"Laura Bertone", contatto:"l.bertone@email.it",
-    foto:true, vocale:true,
-    testo:"Buca larga circa mezzo metro all'altezza del civico 24. Due auto ci sono già finite dentro stamattina, una ha bucato.",
-    storico:[{s:"nuova", t:"2026-08-27T07:42:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2600", cat:"Illuminazione", titolo:"Tre lampioni spenti sul lato del parco",
-    indirizzo:"Viale Rimembranza", lat:45.5602, lng:8.0549, stato:"nuova",
-    ts:"2026-08-27T06:15:00", anonima:true, cittadino:null, contatto:null,
-    foto:true, vocale:false,
-    testo:"Da lunedì sera i lampioni davanti all'ingresso del parco restano spenti. Al buio completo la sera è difficile passare a piedi.",
-    storico:[{s:"nuova", t:"2026-08-27T06:15:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2598", cat:"Rifiuti", titolo:"Abbandono di ingombranti vicino ai cassonetti",
-    indirizzo:"Via Martiri della Libertà 8", lat:45.5589, lng:8.0637, stato:"carico",
-    ts:"2026-08-26T18:30:00", anonima:false, cittadino:"Giovanni Perotti", contatto:"339 44 21 887",
-    foto:true, vocale:true,
-    testo:"Qualcuno ha lasciato un divano e due materassi a fianco della campana del vetro. Sono lì da tre giorni.",
-    storico:[{s:"carico", t:"2026-08-27T08:05:00", chi:"Ufficio tecnico"},
-             {s:"nuova",  t:"2026-08-26T18:30:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2596", cat:"Verde pubblico", titolo:"Ramo pericolante sopra i giochi",
-    indirizzo:"Giardini di Piazza Libertà", lat:45.5640, lng:8.0570, stato:"carico",
-    ts:"2026-08-26T15:10:00", anonima:false, cittadino:"Silvia Gallo", contatto:"s.gallo@email.it",
-    foto:true, vocale:false,
-    testo:"Un ramo grosso si è spezzato con il temporale ma è rimasto appeso, proprio sopra l'area giochi dei bambini.",
-    storico:[{s:"carico", t:"2026-08-26T16:40:00", chi:"Ufficio tecnico"},
-             {s:"nuova",  t:"2026-08-26T15:10:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2594", cat:"Degrado urbano", titolo:"Scritte sulla facciata della scuola elementare",
-    indirizzo:"Via Roma 12", lat:45.5615, lng:8.0522, stato:"nuova",
-    ts:"2026-08-26T11:20:00", anonima:true, cittadino:null, contatto:null,
-    foto:true, vocale:false,
-    testo:"Tutta la parete laterale della scuola è stata imbrattata nel fine settimana.",
-    storico:[{s:"nuova", t:"2026-08-26T11:20:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2591", cat:"Viabilità", titolo:"Segnale di stop piegato e poco visibile",
-    indirizzo:"Incrocio Via Cavour / Via Milano", lat:45.5673, lng:8.0498, stato:"risolta",
-    ts:"2026-08-24T09:05:00", anonima:false, cittadino:"Marco Ferrero", contatto:"m.ferrero@email.it",
-    foto:false, vocale:true,
-    testo:"Il palo del stop è piegato verso il marciapiede, chi arriva da Via Milano non lo vede finché non è all'incrocio.",
-    storico:[{s:"risolta", t:"2026-08-25T14:20:00", chi:"Squadra manutenzioni"},
-             {s:"carico",  t:"2026-08-24T10:15:00", chi:"Ufficio tecnico"},
-             {s:"nuova",   t:"2026-08-24T09:05:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2588", cat:"Ordine pubblico", titolo:"Schiamazzi notturni ripetuti in piazza",
-    indirizzo:"Piazza Vittorio Veneto", lat:45.5631, lng:8.0596, stato:"carico",
-    ts:"2026-08-23T23:40:00", anonima:true, cittadino:null, contatto:null,
-    foto:false, vocale:true,
-    testo:"Da tre weekend di fila gruppi in piazza fino alle tre di notte. Non è un'emergenza, ma succede ogni sabato.",
-    storico:[{s:"carico", t:"2026-08-24T09:00:00", chi:"Polizia locale"},
-             {s:"nuova",  t:"2026-08-23T23:40:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2585", cat:"Rifiuti", titolo:"Cestino divelto sul marciapiede",
-    indirizzo:"Via Garibaldi 40", lat:45.5567, lng:8.0605, stato:"risolta",
-    ts:"2026-08-22T16:50:00", anonima:false, cittadino:"Anna Vialardi", contatto:"340 55 90 118",
-    foto:true, vocale:false,
-    testo:"Il cestino è stato staccato dal palo e lasciato per terra, i rifiuti si stanno spargendo.",
-    storico:[{s:"risolta", t:"2026-08-23T11:30:00", chi:"Squadra manutenzioni"},
-             {s:"carico",  t:"2026-08-22T17:30:00", chi:"Ufficio tecnico"},
-             {s:"nuova",   t:"2026-08-22T16:50:00", chi:"Cittadino"}] },
-
-  { id:"RAD-2581", cat:"Degrado urbano", titolo:"Segnalazione non di competenza comunale",
-    indirizzo:"Strada provinciale 230", lat:45.5700, lng:8.0650, stato:"respinta",
-    ts:"2026-08-21T10:00:00", anonima:true, cittadino:null, contatto:null,
-    foto:false, vocale:false,
-    testo:"Guardrail danneggiato lungo la provinciale.",
-    storico:[{s:"respinta", t:"2026-08-21T12:10:00", chi:"Ufficio tecnico"},
-             {s:"nuova",    t:"2026-08-21T10:00:00", chi:"Cittadino"}] }
-];
-
+let SEGNALAZIONI = [];
 let selezionata = null;
 let filtroStato = null;
+let sess = null;          // { access_token, refresh_token, email }
+let timerRicarica = null;
 
 /* ---------- Utility ---------- */
 const $ = s => document.querySelector(s);
@@ -459,57 +444,223 @@ function dataEstesa(iso){
     { day:"2-digit", month:"long", year:"numeric", hour:"2-digit", minute:"2-digit" });
 }
 
+/* ---------- Sessione (in memoria, con appoggio al browser se disponibile) ---------- */
+function salvaSessione(s){
+  sess = s;
+  try { sessionStorage.setItem("radar_sess", JSON.stringify(s)); } catch(e){}
+}
+function leggiSessione(){
+  try {
+    const v = sessionStorage.getItem("radar_sess");
+    if (v) sess = JSON.parse(v);
+  } catch(e){}
+  return sess;
+}
+function scartaSessione(){
+  sess = null;
+  try { sessionStorage.removeItem("radar_sess"); } catch(e){}
+}
+
+/* ---------- Chiamate a Supabase ---------- */
+function headers(extra){
+  return Object.assign({
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + (sess ? sess.access_token : SUPABASE_KEY),
+    "Content-Type": "application/json"
+  }, extra || {});
+}
+
+function login(email, password){
+  return fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email, password: password })
+  })
+  .then(r => r.json().then(d => ({ ok: r.ok, d: d })))
+  .then(res => {
+    if (!res.ok || !res.d.access_token){
+      throw new Error(res.d.error_description || res.d.msg || res.d.message || "Credenziali non valide");
+    }
+    salvaSessione({
+      access_token: res.d.access_token,
+      refresh_token: res.d.refresh_token,
+      email: (res.d.user && res.d.user.email) || email
+    });
+  });
+}
+
+function rinnova(){
+  if (!sess || !sess.refresh_token) return Promise.reject(new Error("nessuna sessione"));
+  return fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: sess.refresh_token })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.access_token) throw new Error("sessione scaduta");
+    salvaSessione({ access_token: d.access_token, refresh_token: d.refresh_token, email: sess.email });
+  });
+}
+
+// Esegue una chiamata autenticata; se il token è scaduto lo rinnova una volta sola.
+function api(path, opts, giaRiprovato){
+  opts = opts || {};
+  return fetch(SUPABASE_URL + path, {
+    method: opts.method || "GET",
+    headers: headers(opts.headers),
+    body: opts.body
+  }).then(r => {
+    if ((r.status === 401 || r.status === 403) && !giaRiprovato){
+      return rinnova().then(() => api(path, opts, true));
+    }
+    if (!r.ok) return r.text().then(t => { throw new Error(t || ("Errore " + r.status)); });
+    if (r.status === 204) return null;
+    return r.json();
+  });
+}
+
+/* ---------- Caricamento dati ---------- */
+function sintesi(testo){
+  const t = String(testo || "").trim().replace(/\s+/g, " ");
+  if (!t) return "Segnalazione senza descrizione";
+  const punto = t.indexOf(". ");
+  if (punto > 12 && punto < 80) return t.slice(0, punto);
+  return t.length > 78 ? t.slice(0, 75) + "…" : t;
+}
+
+function mappa(r, logs){
+  return {
+    uid: r.id,
+    id: r.codice,
+    cat: r.categoria || "Altro",
+    titolo: r.titolo || sintesi(r.descrizione),
+    indirizzo: r.indirizzo ||
+      (r.lat != null ? "Posizione rilevata dal telefono" : "Posizione non disponibile"),
+    lat: r.lat, lng: r.lng,
+    stato: r.stato,
+    ts: r.creata_il,
+    urgenza: r.urgenza,
+    anonima: !!r.anonima,
+    cittadino: r.nome,
+    contatto: r.contatto,
+    foto: !!r.ha_foto,
+    vocale: !!r.ha_vocale,
+    fotoPath: r.foto_path,
+    vocalePath: r.vocale_path,
+    nota: r.nota_interna || "",
+    testo: r.descrizione,
+    storico: (logs[r.id] || []).map(l => ({ s: l.stato, t: l.quando, chi: l.chi || "Operatore" }))
+  };
+}
+
+function caricaDati(){
+  return Promise.all([
+    api("/rest/v1/segnalazioni_dashboard?select=*&order=creata_il.desc"),
+    api("/rest/v1/stati_log?select=segnalazione_id,stato,chi,quando&order=quando.desc")
+  ]).then(([righe, logs]) => {
+    const perId = {};
+    (logs || []).forEach(l => {
+      (perId[l.segnalazione_id] = perId[l.segnalazione_id] || []).push(l);
+    });
+    SEGNALAZIONI = (righe || []).map(r => mappa(r, perId));
+    aggiornaCategorie();
+    if (selezionata && !SEGNALAZIONI.some(s => s.id === selezionata)) selezionata = null;
+    render();
+    segnaAggiornamento();
+  });
+}
+
+function segnaAggiornamento(){
+  const el = $("#ultimoAgg");
+  if (el) el.textContent = "aggiornato " + new Date().toLocaleTimeString("it-IT",
+    { hour:"2-digit", minute:"2-digit" });
+}
+
+function aggiornaCategorie(){
+  const sel = $("#cat"), scelta = sel.value;
+  sel.innerHTML = '<option value="">Tutte le categorie</option>';
+  [...new Set(SEGNALAZIONI.map(s => s.cat))].sort().forEach(c => {
+    const o = document.createElement("option");
+    o.value = o.textContent = c;
+    sel.appendChild(o);
+  });
+  sel.value = scelta;
+}
+
+/* ---------- Allegati: link firmati temporanei ---------- */
+function firma(path){
+  return api("/storage/v1/object/sign/allegati/" + path, {
+    method: "POST",
+    body: JSON.stringify({ expiresIn: 3600 })
+  }).then(d => SUPABASE_URL + "/storage/v1" + d.signedURL);
+}
+
+function caricaAllegati(s){
+  if (s.fotoPath){
+    firma(s.fotoPath)
+      .then(u => { const i = $("#fotoReale"); if (i){ i.src = u; i.hidden = false; $("#fotoAttesa").hidden = true; } })
+      .catch(() => { const a = $("#fotoAttesa"); if (a) a.textContent = "Foto non caricabile"; });
+  }
+  if (s.vocalePath){
+    firma(s.vocalePath)
+      .then(u => { const a = $("#audioReale"); if (a){ a.src = u; a.hidden = false; $("#audioAttesa").hidden = true; } })
+      .catch(() => { const a = $("#audioAttesa"); if (a) a.textContent = "Vocale non caricabile"; });
+  }
+}
+
 /* ---------- Scope radar ---------- */
 function disegnaBlips(){
   const g = $("#blips");
   const kmPerLat = 111, kmPerLng = 111 * Math.cos(MUNICIPIO.lat * Math.PI/180);
-  g.innerHTML = visibili().map(s => {
+  g.innerHTML = visibili().filter(s => s.lat != null && s.lng != null).map(s => {
     const dx = (s.lng - MUNICIPIO.lng) * kmPerLng;
     const dy = (s.lat - MUNICIPIO.lat) * kmPerLat;
     const x = 150 + Math.max(-1, Math.min(1, dx / RAGGIO_KM)) * 132;
     const y = 150 - Math.max(-1, Math.min(1, dy / RAGGIO_KM)) * 132;
-    const c = STATI[s.stato].colore;
     const on = selezionata === s.id ? " on" : "";
     return `<g class="blip${on}" data-id="${s.id}" role="button" tabindex="0"
-              aria-label="${esc(s.titolo)}">
-      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${selezionata===s.id?7:4.5}"
-              fill="${c}" fill-opacity=".85"/>
-      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11" fill="${c}" fill-opacity=".13"/>
+              aria-label="${esc(s.id)} — ${esc(s.titolo)}">
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${STATI[s.stato].colore}" opacity=".12"/>
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${STATI[s.stato].colore}"/>
     </g>`;
   }).join("");
 }
 
-/* ---------- Filtri e lista ---------- */
+/* ---------- Filtri e ricerca ---------- */
 function visibili(){
-  const q = $("#q").value.trim().toLowerCase();
-  const cat = $("#cat").value;
-  return SEGNALAZIONI.filter(s =>
-    (!filtroStato || s.stato === filtroStato) &&
-    (!cat || s.cat === cat) &&
-    (!q || (s.titolo + s.indirizzo + s.id + s.testo).toLowerCase().includes(q))
-  );
+  const q = ($("#q").value || "").trim().toLowerCase();
+  const c = $("#cat").value;
+  return SEGNALAZIONI.filter(s => {
+    if (filtroStato && s.stato !== filtroStato) return false;
+    if (c && s.cat !== c) return false;
+    if (q){
+      const testo = [s.id, s.titolo, s.indirizzo, s.testo, s.cat, s.cittadino].join(" ").toLowerCase();
+      if (!testo.includes(q)) return false;
+    }
+    return true;
+  });
 }
 
 function disegnaFiltri(){
-  const c = $("#filtri");
-  const righe = [["", "Tutte", SEGNALAZIONI.length, "var(--muted)"]].concat(
-    Object.entries(STATI).map(([k,v]) =>
-      [k, v.label, SEGNALAZIONI.filter(s => s.stato === k).length, v.colore])
-  );
-  c.innerHTML = righe.map(([k,lb,n,col]) => `
-    <button class="stat" data-stato="${k}" aria-pressed="${(filtroStato||"")===k}">
-      <span class="sq" style="background:${col}"></span>
-      <span class="lb">${lb}</span>
-      <span class="n">${n}</span>
+  const conta = st => SEGNALAZIONI.filter(s => s.stato === st).length;
+  const voci = [["", "Tutte", SEGNALAZIONI.length]]
+    .concat(Object.keys(STATI).map(k => [k, STATI[k].label, conta(k)]));
+  $("#filtri").innerHTML = voci.map(([k, label, n]) => `
+    <button class="stat ${filtroStato === (k || null) ? "on" : ""}" data-stato="${k}">
+      <span>${label}</span><span class="n">${n}</span>
     </button>`).join("");
 }
 
+/* ---------- Lista ---------- */
 function disegnaLista(){
   const el = $("#lista"), dati = visibili();
   if (!dati.length){
     el.innerHTML = `<div class="empty">
       <strong>Nessuna segnalazione</strong>
-      Nessun risultato con questi filtri. Prova a togliere la ricerca o a scegliere "Tutte".
+      ${SEGNALAZIONI.length
+        ? 'Nessun risultato con questi filtri. Prova a togliere la ricerca o a scegliere "Tutte".'
+        : 'Non è ancora arrivata nessuna segnalazione.'}
     </div>`;
     return;
   }
@@ -526,9 +677,9 @@ function disegnaLista(){
       <p class="addr">${esc(s.indirizzo)}</p>
       <div class="tags">
         <span class="tag">${esc(s.cat)}</span>
+        ${s.urgenza ? `<span class="tag">Urgenza ${esc(s.urgenza)}</span>` : ""}
         ${s.foto ? '<span class="tag">Foto</span>' : ""}
         ${s.vocale ? '<span class="tag">Vocale</span>' : ""}
-        ${s.anonima ? '<span class="tag anon">Anonima</span>' : ""}
       </div>
     </button>`;
   }).join("");
@@ -550,30 +701,31 @@ function disegnaDettaglio(){
     return;
   }
   const st = STATI[s.stato];
-  const onde = Array.from({length: 34}, () =>
-    `<span style="height:${(Math.random()*16+4).toFixed(0)}px"></span>`).join("");
+  const coord = (s.lat != null && s.lng != null)
+    ? `<div class="v mono" style="color:var(--muted);margin-top:3px">${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}</div>
+       <a class="maplink" href="https://www.google.com/maps?q=${s.lat},${s.lng}" target="_blank" rel="noopener">Apri in mappa ↗</a>`
+    : `<div class="v mono" style="color:var(--muted);margin-top:3px">coordinate non trasmesse</div>`;
 
   box.innerHTML = `<div class="detail">
     <div class="detail-head">
-      <span class="code">${s.id} · ${esc(s.cat)}</span>
+      <span class="code">${s.id} · ${esc(s.cat)}${s.urgenza ? " · urgenza " + esc(s.urgenza) : ""}</span>
       <h2>${esc(s.titolo)}</h2>
       <span class="badge" style="color:${st.colore}">${st.label}</span>
       <span class="when" style="margin-left:8px">${dataEstesa(s.ts)}</span>
     </div>
 
-    ${s.foto ? `<div class="media">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/>
-          <path d="M8 6l1.5-2h5L16 6"/></svg>
-        <span class="mono">Foto allegata dal cittadino</span>
+    ${s.foto ? `<div class="field">
+        <div class="k">Foto allegata</div>
+        <div class="media-box">
+          <span class="mono" id="fotoAttesa">Caricamento foto…</span>
+          <img id="fotoReale" alt="Foto allegata dal cittadino" hidden>
+        </div>
       </div>` : ""}
 
-    ${s.vocale ? `<div class="audio">
-        <button class="play" aria-label="Riproduci messaggio vocale">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1l9 5-9 5z"/></svg>
-        </button>
-        <div class="wave" aria-hidden="true">${onde}</div>
-        <span class="code">0:24</span>
+    ${s.vocale ? `<div class="field">
+        <div class="k">Messaggio vocale</div>
+        <span class="mono" id="audioAttesa">Caricamento audio…</span>
+        <audio id="audioReale" controls hidden style="width:100%"></audio>
       </div>` : ""}
 
     <div class="field">
@@ -584,29 +736,29 @@ function disegnaDettaglio(){
     <div class="field">
       <div class="k">Posizione</div>
       <div class="v">${esc(s.indirizzo)}</div>
-      <div class="v mono" style="color:var(--muted);margin-top:3px">${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}</div>
+      ${coord}
     </div>
 
     <div class="field">
       <div class="k">Chi ha segnalato</div>
-      <div class="v">${s.anonima
-        ? '<span style="color:var(--carico)">Segnalazione anonima</span> — nessun recapito disponibile'
-        : esc(s.cittadino) + '<br><span class="mono" style="color:var(--muted)">' + esc(s.contatto) + '</span>'}</div>
+      <div class="v">${esc(s.cittadino) || "—"}<br>
+        <span class="mono" style="color:var(--muted)">${esc(s.contatto) || "nessun recapito"}</span></div>
     </div>
 
     <div class="field">
       <div class="k">Storico</div>
       <ul class="timeline">
-        ${s.storico.map(h => `<li>
-          <div class="t">${STATI[h.s].label}</div>
+        ${s.storico.length ? s.storico.map(h => `<li>
+          <div class="t">${(STATI[h.s] || {label:h.s}).label}</div>
           <div class="m">${dataEstesa(h.t)} · ${esc(h.chi)}</div>
-        </li>`).join("")}
+        </li>`).join("") : '<li><div class="m">Nessun passaggio registrato</div></li>'}
       </ul>
     </div>
 
     <div class="field">
       <div class="k">Nota interna</div>
-      <textarea class="note" placeholder="Visibile solo agli operatori del comune"></textarea>
+      <textarea class="note" id="notaBox" placeholder="Visibile solo agli operatori del comune">${esc(s.nota)}</textarea>
+      <button class="ghost" id="btnNota" style="margin-top:8px">Salva nota</button>
     </div>
 
     <div class="actions">
@@ -614,23 +766,55 @@ function disegnaDettaglio(){
       <button class="act ok" data-azione="risolta" ${s.stato==="risolta"||s.stato==="respinta"?"disabled":""}>Segna risolta</button>
       <button class="act no wide" data-azione="respinta" ${s.stato==="respinta"?"disabled":""}>Respingi — non di competenza</button>
     </div>
+
+    <div class="err-azione" id="errAzione" hidden></div>
   </div>`;
+
+  caricaAllegati(s);
+}
+
+/* ---------- Azioni sul database ---------- */
+function mostraErrore(msg){
+  const e = $("#errAzione");
+  if (e){ e.textContent = msg; e.hidden = false; }
 }
 
 function cambiaStato(nuovo){
   const s = SEGNALAZIONI.find(x => x.id === selezionata);
   if (!s) return;
-  s.stato = nuovo;
-  s.storico.unshift({ s:nuovo, t:new Date().toISOString(), chi:"Ufficio tecnico" });
-  render();
+  api("/rest/v1/segnalazioni?id=eq." + s.uid, {
+    method: "PATCH",
+    headers: { "Prefer": "return=minimal" },
+    body: JSON.stringify({ stato: nuovo })
+  })
+  .then(() => caricaDati())
+  .catch(err => mostraErrore("Non è stato possibile aggiornare lo stato: " + err.message));
+}
+
+function salvaNota(){
+  const s = SEGNALAZIONI.find(x => x.id === selezionata);
+  const box = $("#notaBox");
+  if (!s || !box) return;
+  const btn = $("#btnNota");
+  btn.disabled = true; btn.textContent = "Salvataggio…";
+  api("/rest/v1/segnalazioni?id=eq." + s.uid, {
+    method: "PATCH",
+    headers: { "Prefer": "return=minimal" },
+    body: JSON.stringify({ nota_interna: box.value })
+  })
+  .then(() => { s.nota = box.value; btn.textContent = "Nota salvata"; setTimeout(() => {
+      if ($("#btnNota")){ $("#btnNota").textContent = "Salva nota"; $("#btnNota").disabled = false; }
+    }, 1800); })
+  .catch(err => { btn.disabled = false; btn.textContent = "Salva nota";
+                  mostraErrore("Nota non salvata: " + err.message); });
 }
 
 /* ---------- CSV ---------- */
 function esportaCsv(){
-  const righe = [["Codice","Data","Categoria","Stato","Titolo","Indirizzo","Lat","Lng","Anonima","Descrizione"]]
+  const righe = [["Codice","Data","Categoria","Urgenza","Stato","Titolo","Posizione","Lat","Lng","Segnalato da","Recapito","Descrizione","Nota interna"]]
     .concat(visibili().map(s => [
-      s.id, dataEstesa(s.ts), s.cat, STATI[s.stato].label, s.titolo,
-      s.indirizzo, s.lat, s.lng, s.anonima ? "Sì" : "No", s.testo
+      s.id, dataEstesa(s.ts), s.cat, s.urgenza || "", STATI[s.stato].label, s.titolo,
+      s.indirizzo, s.lat ?? "", s.lng ?? "", s.cittadino || "", s.contatto || "", s.testo, s.nota
     ]));
   const csv = "\uFEFF" + righe.map(r =>
     r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\r\n");
@@ -669,8 +853,10 @@ document.addEventListener("click", e => {
   const act = e.target.closest(".act");
   if (act && !act.disabled){ cambiaStato(act.dataset.azione); return; }
 
+  if (e.target.closest("#btnNota")){ salvaNota(); return; }
   if (e.target.closest("#btnCsv")) esportaCsv();
   if (e.target.closest("#btnChiudi")) $("#pannello").classList.remove("open");
+  if (e.target.closest("#btnEsci")) esci();
 });
 
 document.addEventListener("keydown", e => {
@@ -684,14 +870,55 @@ document.addEventListener("keydown", e => {
 $("#q").addEventListener("input", () => { disegnaLista(); disegnaBlips(); });
 $("#cat").addEventListener("change", () => { disegnaLista(); disegnaBlips(); });
 
-// popola le categorie dai dati
-[...new Set(SEGNALAZIONI.map(s => s.cat))].sort().forEach(c => {
-  const o = document.createElement("option");
-  o.value = o.textContent = c;
-  $("#cat").appendChild(o);
+/* ---------- Avvio, login e uscita ---------- */
+function entra(){
+  $("#login").hidden = true;
+  $("#ruoloOperatore").innerHTML =
+    esc(sess.email) + ' · <button class="esci" id="btnEsci">esci</button>' +
+    ' <span class="mono" id="ultimoAgg" style="color:var(--muted)"></span>';
+  caricaDati().catch(err => {
+    scartaSessione();
+    mostraLogin("Sessione non valida, rifai l'accesso.");
+  });
+  clearInterval(timerRicarica);
+  timerRicarica = setInterval(() => { caricaDati().catch(()=>{}); }, RICARICA_MS);
+}
+
+function mostraLogin(msg){
+  clearInterval(timerRicarica);
+  $("#login").hidden = false;
+  const e = $("#lgErr");
+  if (msg){ e.textContent = msg; e.hidden = false; } else { e.hidden = true; }
+}
+
+function esci(){
+  scartaSessione();
+  SEGNALAZIONI = []; selezionata = null;
+  render();
+  mostraLogin(null);
+}
+
+$("#loginForm").addEventListener("submit", ev => {
+  ev.preventDefault();
+  const btn = $("#lgBtn");
+  btn.disabled = true; btn.textContent = "Accesso in corso…";
+  $("#lgErr").hidden = true;
+  login($("#lgEmail").value.trim(), $("#lgPw").value)
+    .then(() => { $("#lgPw").value = ""; entra(); })
+    .catch(err => mostraLogin(err.message))
+    .finally(() => { btn.disabled = false; btn.textContent = "Entra"; });
 });
 
+if (SUPABASE_URL.indexOf("TUO-PROGETTO") !== -1){
+  mostraLogin("Configurazione mancante: compila SUPABASE_URL e SUPABASE_KEY nel file.");
+} else if (leggiSessione()){
+  entra();
+} else {
+  mostraLogin(null);
+}
+
 render();
+
 </script>
 </body>
 </html>
