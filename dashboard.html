@@ -512,7 +512,8 @@ function api(path, opts, giaRiprovato){
     body: opts.body
   }).then(r => {
     if ((r.status === 401 || r.status === 403) && !giaRiprovato){
-      return rinnova().then(() => api(path, opts, true));
+      return rinnova().then(() => api(path, opts, true))
+        .catch(() => { const e = new Error("SESSIONE_SCADUTA"); throw e; });
     }
     if (!r.ok) return r.text().then(t => { throw new Error(t || ("Errore " + r.status)); });
     if (r.status === 204) return null;
@@ -569,6 +570,13 @@ function caricaDati(){
     render();
     segnaAggiornamento();
   });
+}
+
+function erroreDati(msg){
+  $("#lista").innerHTML = `<div class="empty">
+    <strong>Dati non leggibili</strong>
+    ${esc(msg)}
+  </div>`;
 }
 
 function segnaAggiornamento(){
@@ -877,11 +885,22 @@ function entra(){
     esc(sess.email) + ' · <button class="esci" id="btnEsci">esci</button>' +
     ' <span class="mono" id="ultimoAgg" style="color:var(--muted)"></span>';
   caricaDati().catch(err => {
-    scartaSessione();
-    mostraLogin("Sessione non valida, rifai l'accesso.");
+    const m = String(err && err.message || err);
+    if (m.indexOf("SESSIONE_SCADUTA") !== -1){
+      scartaSessione();
+      mostraLogin("Sessione scaduta, rifai l'accesso.");
+    } else {
+      erroreDati("L'accesso e' riuscito ma la lettura delle segnalazioni ha risposto: " + m);
+    }
   });
   clearInterval(timerRicarica);
-  timerRicarica = setInterval(() => { caricaDati().catch(()=>{}); }, RICARICA_MS);
+  timerRicarica = setInterval(() => {
+    caricaDati().catch(err => {
+      if (String(err && err.message).indexOf("SESSIONE_SCADUTA") !== -1){
+        scartaSessione(); mostraLogin("Sessione scaduta, rifai l'accesso.");
+      }
+    });
+  }, RICARICA_MS);
 }
 
 function mostraLogin(msg){
