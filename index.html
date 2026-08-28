@@ -211,6 +211,7 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
       <div class="rr"><span>Allegati</span><strong id="r-media">—</strong></div>
       <div class="rr"><span>Segnalato da</span><strong id="r-anon">—</strong></div>
     </div>
+    <div class="err" id="err-invio"></div>
     <button class="btn-next" id="btn-invia" onclick="invia()">⚡ Invia segnalazione</button>
     <button class="btn-back" onclick="back(4)">← Modifica</button>
   </div>
@@ -232,13 +233,16 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
 <script>
 /*
   ============================================================
-  ISTRUZIONI FORMSPREE:
-  1. Vai su formspree.io → crea account gratuito
-  2. Crea un nuovo Form con l'email del comune
-  3. Sostituisci FORMSPREE_ID con il tuo ID (es. xabcdefg)
+  CONFIGURAZIONE SUPABASE
+  Da Supabase → Settings → API, copia qui i due valori:
+    SUPABASE_URL  = "Project URL"      (es. https://abcdefgh.supabase.co)
+    SUPABASE_KEY  = "anon public key"  (la stringa lunga che inizia con eyJ)
+  Sono entrambi pubblici per progetto: la protezione sta nelle policy
+  del database, non nel nascondere la chiave.
   ============================================================
 */
-var FORMSPREE_ID = 'xqpkzeql';
+var SUPABASE_URL = 'https://niyotnrttnklpqyylfmq.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_xnZuoub2QFpYMtEMgdOmHg_I7_j4nHH';
 
 var catSel='',urgSel='',fotoBlob=null,recFatto=false;
 var mediaRec=null,audioChunks=[],audioBlob=null;
@@ -382,51 +386,82 @@ function next(from){
 }
 function back(from){showStep(from-1);}
 
-/* --- INVIO REALE --- */
+/* --- INVIO REALE (Supabase) --- */
+
+// Nome file univoco, ordinato per anno/mese così il bucket resta navigabile.
+function nomeFile(ext){
+  var d=new Date();
+  var mese=('0'+(d.getMonth()+1)).slice(-2);
+  var id=(window.crypto&&crypto.randomUUID)
+    ? crypto.randomUUID()
+    : Date.now()+'-'+Math.floor(Math.random()*1e6);
+  return d.getFullYear()+'/'+mese+'/'+id+'.'+ext;
+}
+
+// Carica un allegato nel bucket privato e restituisce il percorso salvato.
+function caricaAllegato(blob, ext){
+  var path=nomeFile(ext);
+  return fetch(SUPABASE_URL+'/storage/v1/object/allegati/'+path,{
+    method:'POST',
+    headers:{
+      'apikey':SUPABASE_KEY,
+      'Authorization':'Bearer '+SUPABASE_KEY,
+      'Content-Type':blob.type||'application/octet-stream'
+    },
+    body:blob
+  }).then(function(r){
+    if(!r.ok) return r.text().then(function(t){throw new Error('Allegato non caricato: '+t);});
+    return path;
+  });
+}
+
 function invia(){
   var btn=document.getElementById('btn-invia');
   btn.disabled=true;btn.textContent='Invio in corso...';
-  var anno=new Date().getFullYear();
-  var rand=Math.floor(Math.random()*9000+1000);
-  var num='SEG-'+anno+'-'+rand;
 
-  var fd=new FormData();
-  fd.append('_subject','🎯 RADAR — Segnalazione '+num+' | '+catSel+' | '+urgSel+' urgenza');
-  fd.append('Numero pratica',num);
-  fd.append('Categoria',catSel);
-  fd.append('Urgenza',urgSel);
-  fd.append('Nome',document.getElementById('nome').value.trim());
-  fd.append('Contatto',document.getElementById('contatto').value.trim());
-  fd.append('Descrizione',document.getElementById('desc').value||'—');
-  fd.append('Posizione GPS',geoTxt);
-  fd.append('Latitudine',geoLat||'—');
-  fd.append('Longitudine',geoLng||'—');
-  fd.append('Data e ora',new Date().toLocaleString('it-IT'));
-  fd.append('Foto',fotoBlob?'Sì (vedi allegato)':'No');
-  fd.append('Vocale',audioBlob?'Sì (vedi allegato)':'No');
+  // Prima gli allegati, poi la segnalazione con i loro percorsi.
+  var lavori=[
+    fotoBlob  ? caricaAllegato(fotoBlob,'jpg')   : Promise.resolve(null),
+    audioBlob ? caricaAllegato(audioBlob,'webm') : Promise.resolve(null)
+  ];
 
-  // Allegati veri: la foto e l'audio vengono inviati come file reali
-  if(fotoBlob) fd.append('foto', fotoBlob, 'foto-'+num+'.jpg');
-  if(audioBlob) fd.append('vocale', audioBlob, 'vocale-'+num+'.webm');
-
-  fetch('https://formspree.io/f/'+FORMSPREE_ID,{
-    method:'POST',
-    headers:{'Accept':'application/json'},
-    body:fd
+  Promise.all(lavori)
+  .then(function(paths){
+    return fetch(SUPABASE_URL+'/rest/v1/rpc/crea_segnalazione',{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':'Bearer '+SUPABASE_KEY,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        p_categoria:catSel,
+        p_urgenza:urgSel,
+        p_descrizione:document.getElementById('desc').value.trim(),
+        p_nome:document.getElementById('nome').value.trim(),
+        p_contatto:document.getElementById('contatto').value.trim(),
+        p_lat:geoLat?parseFloat(geoLat):null,
+        p_lng:geoLng?parseFloat(geoLng):null,
+        p_foto_path:paths[0],
+        p_vocale_path:paths[1]
+      })
+    });
   })
-  .then(function(res){
-    if(res.ok){
-      document.getElementById('pratica').textContent=num;
-      document.getElementById('sbar').style.display='none';
-      showStep(5);
-    } else {
-      btn.disabled=false;btn.textContent='⚡ Invia segnalazione';
-      alert('Errore nell\'invio. Controlla la connessione e riprova.');
-    }
+  .then(function(r){
+    if(!r.ok) return r.text().then(function(t){throw new Error(t);});
+    return r.json();
   })
-  .catch(function(){
+  .then(function(codice){
+    document.getElementById('pratica').textContent=codice;
+    document.getElementById('sbar').style.display='none';
+    showStep(5);
+  })
+  .catch(function(e){
     btn.disabled=false;btn.textContent='⚡ Invia segnalazione';
-    alert('Errore di connessione. Riprova tra qualche istante.');
+    document.getElementById('err-invio').textContent=
+      'Invio non riuscito. Riprova tra qualche istante. ('+
+      String(e.message||e).slice(0,120)+')';
+    document.getElementById('err-invio').style.display='block';
   });
 }
 
