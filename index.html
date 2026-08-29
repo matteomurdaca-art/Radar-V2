@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>RADAR — Segnalazioni cittadini</title>
 <meta name="description" content="Segnala problemi al Comune in pochi secondi dal tuo smartphone."/>
+<link rel="manifest" href="manifest-app.webmanifest">
+<meta name="theme-color" content="#0F0F0F">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RADAR">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -241,6 +248,7 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
 
 <footer class="footer">RADAR — Segnalazioni dei cittadini | <a href="#">Privacy</a></footer>
 
+<script src="config.js"></script>
 <script>
 /*
   ============================================================
@@ -252,8 +260,8 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
   del database, non nel nascondere la chiave.
   ============================================================
 */
-var SUPABASE_URL = 'https://niyotnrttnklpqyylfmq.supabase.co';
-var SUPABASE_KEY = 'sb_publishable_xnZuoub2QFpYMtEMgdOmHg_I7_j4nHH';
+var SUPABASE_URL = window.SUPABASE_URL || 'https://TUO-PROGETTO.supabase.co';
+var SUPABASE_KEY = window.SUPABASE_KEY || 'TUA-CHIAVE-PUBBLICA';
 
 var catSel='',urgSel='',fotoBlob=null,recFatto=false;
 var mediaRec=null,audioChunks=[],audioBlob=null;
@@ -555,6 +563,14 @@ if(navigator.geolocation){
   );
 } else {
   document.getElementById('geo-badge').textContent='📍 GPS non supportato';
+}
+</script>
+<script>
+/* Registra il service worker: serve perche' il browser proponga l'installazione. */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
 }
 </script>
 </body>

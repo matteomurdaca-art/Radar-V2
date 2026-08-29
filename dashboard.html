@@ -7,6 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest-dashboard.webmanifest">
+<meta name="theme-color" content="#070B10">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RADAR Dashboard">
 <style>
 :root{
   --bg:#070B10;
@@ -398,6 +405,7 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 
 </div>
 
+<script src="config.js"></script>
 <script>
 /* =========================================================
    RADAR — Dashboard comunale
@@ -409,8 +417,8 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
    SUPABASE_KEY = chiave pubblica (anon public / publishable)
    ========================================================= */
 
-var SUPABASE_URL = 'https://niyotnrttnklpqyylfmq.supabase.co';
-var SUPABASE_KEY = 'sb_publishable_xnZuoub2QFpYMtEMgdOmHg_I7_j4nHH';
+var SUPABASE_URL = window.SUPABASE_URL || 'https://TUO-PROGETTO.supabase.co';
+var SUPABASE_KEY = window.SUPABASE_KEY || 'TUA-CHIAVE-PUBBLICA';
 
 const MUNICIPIO = { lat: 45.5628, lng: 8.0583 }; // centro dello scope
 const RAGGIO_KM = 3;
@@ -942,6 +950,14 @@ if (SUPABASE_URL.indexOf("TUO-PROGETTO") !== -1){
 
 render();
 
+</script>
+<script>
+/* Registra il service worker: serve perche' il browser proponga l'installazione. */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
