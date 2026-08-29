@@ -305,6 +305,18 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 .err-azione{margin-top:12px;background:rgba(255,90,90,.09);border:1px solid rgba(255,90,90,.32);
   color:#FF9B9B;border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45}
 .err-azione[hidden]{display:none}
+.raggr{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);
+  white-space:nowrap;cursor:pointer;user-select:none}
+.raggr input{accent-color:var(--ciano);cursor:pointer}
+.dupe{display:inline-flex;align-items:center;gap:5px;background:rgba(0,229,255,.1);
+  border:1px solid rgba(0,229,255,.3);color:var(--ciano);border-radius:20px;
+  padding:2px 9px;font-size:11px;font-family:var(--mono)}
+.simili-lista{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.simile{background:var(--bg);border:1px solid var(--linea);border-radius:9px;
+  padding:8px 10px;text-align:left;cursor:pointer;color:var(--testo);font:inherit;font-size:12.5px}
+.simile:hover{border-color:var(--ciano)}
+.simile .cod{font-family:var(--mono);color:var(--ciano);font-size:11px}
+.simile .qta{color:var(--muted);font-size:11px;display:block;margin-top:2px}
 </style>
 </head>
 <body>
@@ -393,6 +405,7 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
       <select class="search" id="cat" aria-label="Filtra per categoria">
         <option value="">Tutte le categorie</option>
       </select>
+      <label class="raggr"><input type="checkbox" id="raggruppa" checked> Raggruppa simili</label>
     </div>
     <div class="cards" id="lista"></div>
   </main>
@@ -567,6 +580,84 @@ function mappa(r, logs){
   };
 }
 
+/* =========================================================
+   Raggruppamento delle segnalazioni doppie
+   Due segnalazioni finiscono nello stesso gruppo se hanno
+   la stessa categoria, sono vicine, ravvicinate nel tempo e
+   il testo si somiglia. I calcoli sono fatti qui nel browser:
+   i volumi sono piccoli e non serve toccare il database.
+   ========================================================= */
+
+const DIST_MAX_M   = 120;   // oltre questa distanza non sono la stessa cosa
+const DIST_SICURA_M = 35;   // sotto questa bastano categoria e periodo
+const GIORNI_MAX   = 45;
+const SIMIL_MIN    = 0.34;  // somiglianza minima del testo
+
+function distanzaM(a, b){
+  if (a.lat == null || b.lat == null) return Infinity;
+  const R = 6371000, r = Math.PI/180;
+  const dLat = (b.lat-a.lat)*r, dLng = (b.lng-a.lng)*r;
+  const x = Math.sin(dLat/2)**2 +
+            Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+
+const VUOTE = new Set(["il","lo","la","i","gli","le","un","uno","una","di","a","da","in",
+  "con","su","per","tra","fra","e","che","non","del","della","dei","delle","al","alla",
+  "ai","alle","dal","dalla","nel","nella","sul","sulla","è","c'è","ci","si","ha","hanno",
+  "sono","essere","stato","molto","qui","questo","questa"]);
+
+function parole(t){
+  return new Set(String(t||"").toLowerCase()
+    .replace(/[^a-zàèéìòùç\s]/g," ").split(/\s+/)
+    .filter(p => p.length > 2 && !VUOTE.has(p)));
+}
+
+function similitudine(a, b){
+  const A = parole(a), B = parole(b);
+  if (!A.size || !B.size) return 0;
+  let comuni = 0;
+  A.forEach(p => { if (B.has(p)) comuni++; });
+  return comuni / Math.min(A.size, B.size);   // sovrapposizione sul testo piu' corto
+}
+
+function stessaCosa(a, b){
+  if (a.cat !== b.cat) return false;
+  const giorni = Math.abs(new Date(a.ts) - new Date(b.ts)) / 86400000;
+  if (giorni > GIORNI_MAX) return false;
+  const d = distanzaM(a, b);
+  if (d > DIST_MAX_M) return false;
+  if (d <= DIST_SICURA_M) return true;
+  return similitudine(a.titolo + " " + a.testo, b.titolo + " " + b.testo) >= SIMIL_MIN;
+}
+
+function calcolaGruppi(){
+  // ogni segnalazione parte da sola, poi le unisco a catena
+  const padre = {};
+  SEGNALAZIONI.forEach(s => { padre[s.id] = s.id; s.simili = []; });
+  const radice = x => { while (padre[x] !== x) x = padre[x] = padre[padre[x]]; return x; };
+
+  for (let i = 0; i < SEGNALAZIONI.length; i++)
+    for (let j = i+1; j < SEGNALAZIONI.length; j++)
+      if (stessaCosa(SEGNALAZIONI[i], SEGNALAZIONI[j])){
+        const a = radice(SEGNALAZIONI[i].id), b = radice(SEGNALAZIONI[j].id);
+        if (a !== b) padre[a] = b;
+      }
+
+  const gruppi = {};
+  SEGNALAZIONI.forEach(s => {
+    s.gruppo = radice(s.id);
+    (gruppi[s.gruppo] = gruppi[s.gruppo] || []).push(s);
+  });
+
+  // il capogruppo e' la piu' vecchia: e' quella con il codice originale
+  Object.values(gruppi).forEach(g => {
+    g.sort((x, y) => new Date(x.ts) - new Date(y.ts));
+    const capo = g[0];
+    g.forEach(s => { s.capo = capo.id; s.simili = g.filter(x => x.id !== s.id).map(x => x.id); });
+  });
+}
+
 function caricaDati(){
   return Promise.all([
     api("/rest/v1/segnalazioni_dashboard?select=*&order=creata_il.desc"),
@@ -577,6 +668,7 @@ function caricaDati(){
       (perId[l.segnalazione_id] = perId[l.segnalazione_id] || []).push(l);
     });
     SEGNALAZIONI = (righe || []).map(r => mappa(r, perId));
+    calcolaGruppi();
     aggiornaCategorie();
     if (selezionata && !SEGNALAZIONI.some(s => s.id === selezionata)) selezionata = null;
     render();
@@ -673,8 +765,18 @@ function disegnaFiltri(){
 }
 
 /* ---------- Lista ---------- */
+function raggruppaAttivo(){
+  const c = $("#raggruppa");
+  return c ? c.checked : false;
+}
+
 function disegnaLista(){
-  const el = $("#lista"), dati = visibili();
+  const el = $("#lista");
+  let dati = visibili();
+  if (raggruppaAttivo()){
+    const visti = new Set(dati.map(s => s.id));
+    dati = dati.filter(s => s.id === s.capo || !visti.has(s.capo));
+  }
   if (!dati.length){
     el.innerHTML = `<div class="empty">
       <strong>Nessuna segnalazione</strong>
@@ -696,6 +798,8 @@ function disegnaLista(){
       <h3>${esc(s.titolo)}</h3>
       <p class="addr">${esc(s.indirizzo)}</p>
       <div class="tags">
+        ${(raggruppaAttivo() && s.simili.length)
+          ? `<span class="dupe">${s.simili.length + 1} segnalazioni</span>` : ""}
         <span class="tag">${esc(s.cat)}</span>
         ${s.urgenza ? `<span class="tag">Urgenza ${esc(s.urgenza)}</span>` : ""}
         ${s.foto ? '<span class="tag">Foto</span>' : ""}
@@ -764,6 +868,20 @@ function disegnaDettaglio(){
       <div class="v">${esc(s.cittadino) || "—"}<br>
         <span class="mono" style="color:var(--muted)">${esc(s.contatto) || "nessun recapito"}</span></div>
     </div>
+
+    ${s.simili.length ? `<div class="field">
+      <div class="k">Stesso problema segnalato da altri (${s.simili.length})</div>
+      <div class="simili-lista">
+        ${s.simili.map(id => {
+          const o = SEGNALAZIONI.find(x => x.id === id);
+          if (!o) return "";
+          return `<button class="simile" data-id="${o.id}">
+            <span class="cod">${o.id}</span> · ${esc(o.cittadino) || "senza nome"}
+            <span class="qta">${dataEstesa(o.ts)} · ${Math.round(distanzaM(s, o))} m di distanza</span>
+          </button>`;
+        }).join("")}
+      </div>
+    </div>` : ""}
 
     <div class="field">
       <div class="k">Storico</div>
@@ -870,6 +988,9 @@ document.addEventListener("click", e => {
   const blip = e.target.closest(".blip");
   if (blip){ apri(blip.dataset.id); return; }
 
+  const sim = e.target.closest(".simile");
+  if (sim){ apri(sim.dataset.id); return; }
+
   const act = e.target.closest(".act");
   if (act && !act.disabled){ cambiaStato(act.dataset.azione); return; }
 
@@ -889,6 +1010,7 @@ document.addEventListener("keydown", e => {
 
 $("#q").addEventListener("input", () => { disegnaLista(); disegnaBlips(); });
 $("#cat").addEventListener("change", () => { disegnaLista(); disegnaBlips(); });
+$("#raggruppa").addEventListener("change", () => { disegnaLista(); });
 
 /* ---------- Avvio, login e uscita ---------- */
 function entra(){
