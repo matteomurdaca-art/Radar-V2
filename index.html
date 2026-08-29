@@ -205,6 +205,13 @@ audio{width:100%;margin-bottom:12px;display:none;border-radius:8px;}
       </div>
     </div>
     <audio id="audio-player" controls></audio>
+    <div class="rec-btn" id="detta-btn" onclick="toggleDettatura()">
+      <span class="ico" id="detta-ico">⌨️</span>
+      <div class="txt">
+        <span id="detta-lbl">Detta la descrizione</span>
+        <small id="detta-sub">Parla e il testo viene scritto da solo</small>
+      </div>
+    </div>
     <div class="trascr" id="trascr">
       <div class="lab">Trascrizione automatica</div>
       <div class="txt" id="trascr-txt"><em>In ascolto...</em></div>
@@ -348,64 +355,145 @@ function fotoSelezionata(input){
   reader.readAsDataURL(file);
 }
 
-/* --- TRASCRIZIONE VOCALE (riconoscimento del browser) --- */
-var Recog = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-var recog = null, trascrittoFinale = '';
+/* --- RICONOSCIMENTO VOCALE ---
+   Due usi distinti:
+   a) trascrizione durante la registrazione del vocale (puo' fallire su Android,
+      perche' il registratore tiene occupato il microfono);
+   b) dettatura pura, senza registratore: questa funziona sempre. */
 
-function avviaTrascrizione(){
-  if(!Recog) return;
-  trascrittoFinale = '';
-  try{ recog = new Recog(); }catch(e){ recog = null; return; }
-  recog.lang = 'it-IT';
-  recog.continuous = true;
-  recog.interimResults = true;
-  recog.onresult = function(ev){
-    var provvisorio = '';
+var Recog = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+var recog = null, trascrittoFinale = '', ultimoErrore = '', vogliamoAscoltare = false;
+
+var MOTIVI = {
+  'not-allowed':        'permesso microfono negato al riconoscimento vocale',
+  'service-not-allowed':'il servizio di riconoscimento non e\' disponibile su questo telefono',
+  'audio-capture':      'il microfono e\' gia\' occupato dalla registrazione',
+  'no-speech':          'non ho sentito parlare',
+  'network':            'serve una connessione dati attiva',
+  'aborted':            'riconoscimento interrotto'
+};
+
+function creaRecog(alFine){
+  if(!Recog) return null;
+  var r;
+  try{ r = new Recog(); }catch(e){ return null; }
+  r.lang = 'it-IT';
+  r.continuous = true;
+  r.interimResults = true;
+  r.maxAlternatives = 1;
+  r.onresult = function(ev){
+    var prov = '';
     for(var i = ev.resultIndex; i < ev.results.length; i++){
       var t = ev.results[i][0].transcript;
       if(ev.results[i].isFinal) trascrittoFinale += t + ' ';
-      else provvisorio += t;
+      else prov += t;
     }
-    mostraTrascrizione(trascrittoFinale + provvisorio, !!provvisorio);
+    mostraTrascrizione(trascrittoFinale + prov, !!prov);
   };
-  recog.onerror = function(){};
-  try{ recog.start(); }catch(e){}
-  document.getElementById('trascr').classList.add('on');
-  mostraTrascrizione('', true);
+  r.onerror = function(ev){ ultimoErrore = ev.error || ''; };
+  r.onend = function(){
+    // Android chiude la sessione da solo dopo qualche secondo di silenzio:
+    // se stiamo ancora ascoltando, la riapriamo.
+    if(vogliamoAscoltare && ultimoErrore !== 'not-allowed' && ultimoErrore !== 'service-not-allowed'){
+      try{ r.start(); return; }catch(e){}
+    }
+    if(alFine) alFine();
+  };
+  return r;
 }
 
 function mostraTrascrizione(testo, parziale){
   var box = document.getElementById('trascr-txt');
+  if(!box) return;
   if(!testo.trim()){ box.innerHTML = '<em>In ascolto...</em>'; return; }
-  box.textContent = testo.trim() + (parziale ? '…' : '');
+  box.textContent = testo.trim() + (parziale ? '\u2026' : '');
+}
+
+function avviaTrascrizione(){
+  trascrittoFinale = ''; ultimoErrore = '';
+  document.getElementById('trascr').classList.add('on');
+  document.getElementById('trascr-nota').textContent =
+    'Il testo viene copiato nella descrizione qui sotto. Rileggilo e correggilo se serve.';
+  if(!Recog){
+    document.getElementById('trascr-txt').innerHTML =
+      '<em>Questo browser non trascrive il parlato. Il vocale resta allegato.</em>';
+    document.getElementById('trascr-nota').textContent = '';
+    return;
+  }
+  vogliamoAscoltare = true;
+  recog = creaRecog(null);
+  if(recog){ try{ recog.start(); }catch(e){ ultimoErrore = 'aborted'; } }
+  mostraTrascrizione('', true);
 }
 
 function chiudiTrascrizione(){
+  vogliamoAscoltare = false;
   if(recog){ try{ recog.stop(); }catch(e){} recog = null; }
   var testo = trascrittoFinale.trim();
   var nota = document.getElementById('trascr-nota');
+  if(testo){
+    mostraTrascrizione(testo, false);
+    var desc = document.getElementById('desc');
+    desc.value = desc.value.trim() ? desc.value.trim() + ' ' + testo : testo;
+    return;
+  }
+  var motivo = MOTIVI[ultimoErrore] || (Recog ? 'il riconoscimento non ha restituito testo' : 'browser senza riconoscimento vocale');
+  document.getElementById('trascr-txt').innerHTML =
+    '<em>Trascrizione non riuscita: ' + motivo + '. Il vocale resta allegato.</em>';
+  nota.textContent = 'Puoi usare il pulsante "Detta la descrizione" qui sotto, che funziona anche quando questa non riesce.';
+}
+
+/* --- DETTATURA PURA (senza registratore) --- */
+var dettando = false;
+
+function toggleDettatura(){
+  var btn = document.getElementById('detta-btn');
   if(!Recog){
-    document.getElementById('trascr').classList.add('on');
-    document.getElementById('trascr-txt').innerHTML =
-      '<em>Questo browser non trascrive il parlato. Il vocale resta allegato e sara ascoltato dall\'operatore.</em>';
-    nota.textContent = '';
+    alert('Questo browser non supporta la dettatura. Prova con Chrome, oppure scrivi la descrizione.');
     return;
   }
-  if(!testo){
-    document.getElementById('trascr-txt').innerHTML =
-      '<em>Non sono riuscito a trascrivere. Il vocale resta allegato.</em>';
-    nota.textContent = '';
+  if(dettando){
+    vogliamoAscoltare = false;
+    if(recog){ try{ recog.stop(); }catch(e){} }
     return;
   }
-  mostraTrascrizione(testo, false);
-  var desc = document.getElementById('desc');
-  desc.value = desc.value.trim() ? desc.value.trim() + ' ' + testo : testo;
+  trascrittoFinale = ''; ultimoErrore = '';
+  var partenza = document.getElementById('desc').value.trim();
+  document.getElementById('trascr').classList.add('on');
+  document.getElementById('trascr-nota').textContent = 'Tocca di nuovo il pulsante per fermare.';
+  mostraTrascrizione('', true);
+
+  vogliamoAscoltare = true; dettando = true;
+  recog = creaRecog(function(){
+    dettando = false; recog = null;
+    btn.classList.remove('recording');
+    document.getElementById('detta-ico').textContent = '\u2328\ufe0f';
+    document.getElementById('detta-lbl').textContent = 'Detta la descrizione';
+    document.getElementById('detta-sub').textContent = 'Parla e il testo viene scritto da solo';
+    var testo = trascrittoFinale.trim();
+    if(testo){
+      document.getElementById('desc').value = partenza ? partenza + ' ' + testo : testo;
+      mostraTrascrizione(testo, false);
+      document.getElementById('trascr-nota').textContent = 'Testo copiato nella descrizione. Rileggilo e correggilo se serve.';
+    } else {
+      var motivo = MOTIVI[ultimoErrore] || 'nessun testo riconosciuto';
+      document.getElementById('trascr-txt').innerHTML = '<em>Dettatura non riuscita: ' + motivo + '.</em>';
+      document.getElementById('trascr-nota').textContent = '';
+    }
+  });
+  if(!recog){ dettando = false; return; }
+  try{ recog.start(); }catch(e){ dettando = false; return; }
+  btn.classList.add('recording');
+  document.getElementById('detta-ico').textContent = '\u23f9\ufe0f';
+  document.getElementById('detta-lbl').textContent = 'Sto scrivendo quello che dici...';
+  document.getElementById('detta-sub').textContent = 'Tocca per fermare';
 }
 
 /* --- VOCALE REALE --- */
 function toggleRec(){
   var btn=document.getElementById('rec-btn');
   if(!mediaRec){
+    avviaTrascrizione();   // prima il riconoscimento, poi il registratore
     navigator.mediaDevices.getUserMedia({audio:true})
     .then(function(stream){
       audioChunks=[];
@@ -425,7 +513,6 @@ function toggleRec(){
         chiudiTrascrizione();
       };
       mediaRec.start();
-      avviaTrascrizione();
       btn.classList.add('recording');
       document.getElementById('rec-ico').textContent='⏹️';
       document.getElementById('rec-lbl').textContent='Registrazione in corso...';
