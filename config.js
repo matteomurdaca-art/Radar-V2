@@ -4,5 +4,5 @@
    La chiave da usare e' quella PUBBLICA (anon public / publishable),
    mai quella secret o service_role. */
 
-var SUPABASE_URL = 'https://TUO-PROGETTO.supabase.co';
+var SUPABASE_URL = 'https://niyotnrttnklpqyylfmq.supabase.co';
 var SUPABASE_KEY = 'TUA-CHIAVE-PUBBLICA';
