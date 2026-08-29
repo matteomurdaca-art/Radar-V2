@@ -5,4 +5,4 @@
    mai quella secret o service_role. */
 
 var SUPABASE_URL = 'https://niyotnrttnklpqyylfmq.supabase.co';
-var SUPABASE_KEY = 'xqpkzeql';
+var SUPABASE_KEY = 'sb_publishable_xnZuoub2QFpYMtEMgdOmHg_I7_j4nHH';
