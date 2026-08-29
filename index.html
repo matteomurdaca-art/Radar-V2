@@ -363,6 +363,26 @@ function fotoSelezionata(input){
 
 var Recog = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 var recog = null, trascrittoFinale = '', ultimoErrore = '', vogliamoAscoltare = false;
+var baseSessioni = '', sessioneCorrente = '';
+
+/* Toglie le ripetizioni immediate: Android, quando riapre la sessione,
+   puo' rimandare pezzi gia' trascritti. */
+function ripulisci(testo){
+  var w = String(testo || '').trim().split(/\s+/).filter(Boolean);
+  for(var n = 6; n >= 1; n--){
+    var i = 0;
+    while(i + 2*n <= w.length){
+      var a = w.slice(i, i+n).join(' ').toLowerCase();
+      var b = w.slice(i+n, i+2*n).join(' ').toLowerCase();
+      if(a === b) w.splice(i+n, n); else i++;
+    }
+  }
+  var s = w.join(' ').trim();
+  if(!s) return '';
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if(!/[.!?]$/.test(s)) s += '.';
+  return s;
+}
 
 var MOTIVI = {
   'not-allowed':        'permesso microfono negato al riconoscimento vocale',
@@ -382,19 +402,25 @@ function creaRecog(alFine){
   r.interimResults = true;
   r.maxAlternatives = 1;
   r.onresult = function(ev){
-    var prov = '';
-    for(var i = ev.resultIndex; i < ev.results.length; i++){
+    var finali = '', prov = '';
+    // si rilegge sempre tutta la lista: cosi' un rinvio dello stesso testo
+    // sostituisce il precedente invece di sommarsi.
+    for(var i = 0; i < ev.results.length; i++){
       var t = ev.results[i][0].transcript;
-      if(ev.results[i].isFinal) trascrittoFinale += t + ' ';
+      if(ev.results[i].isFinal) finali += t + ' ';
       else prov += t;
     }
-    mostraTrascrizione(trascrittoFinale + prov, !!prov);
+    sessioneCorrente = finali;
+    trascrittoFinale = baseSessioni + sessioneCorrente;
+    mostraTrascrizione(ripulisci(trascrittoFinale + prov), !!prov);
   };
   r.onerror = function(ev){ ultimoErrore = ev.error || ''; };
   r.onend = function(){
     // Android chiude la sessione da solo dopo qualche secondo di silenzio:
     // se stiamo ancora ascoltando, la riapriamo.
     if(vogliamoAscoltare && ultimoErrore !== 'not-allowed' && ultimoErrore !== 'service-not-allowed'){
+      baseSessioni = baseSessioni + sessioneCorrente;
+      sessioneCorrente = '';
       try{ r.start(); return; }catch(e){}
     }
     if(alFine) alFine();
@@ -410,7 +436,7 @@ function mostraTrascrizione(testo, parziale){
 }
 
 function avviaTrascrizione(){
-  trascrittoFinale = ''; ultimoErrore = '';
+  trascrittoFinale = ''; ultimoErrore = ''; baseSessioni = ''; sessioneCorrente = '';
   document.getElementById('trascr').classList.add('on');
   document.getElementById('trascr-nota').textContent =
     'Il testo viene copiato nella descrizione qui sotto. Rileggilo e correggilo se serve.';
@@ -429,7 +455,7 @@ function avviaTrascrizione(){
 function chiudiTrascrizione(){
   vogliamoAscoltare = false;
   if(recog){ try{ recog.stop(); }catch(e){} recog = null; }
-  var testo = trascrittoFinale.trim();
+  var testo = ripulisci(trascrittoFinale);
   var nota = document.getElementById('trascr-nota');
   if(testo){
     mostraTrascrizione(testo, false);
@@ -457,7 +483,7 @@ function toggleDettatura(){
     if(recog){ try{ recog.stop(); }catch(e){} }
     return;
   }
-  trascrittoFinale = ''; ultimoErrore = '';
+  trascrittoFinale = ''; ultimoErrore = ''; baseSessioni = ''; sessioneCorrente = '';
   var partenza = document.getElementById('desc').value.trim();
   document.getElementById('trascr').classList.add('on');
   document.getElementById('trascr-nota').textContent = 'Tocca di nuovo il pulsante per fermare.';
@@ -470,7 +496,7 @@ function toggleDettatura(){
     document.getElementById('detta-ico').textContent = '\u2328\ufe0f';
     document.getElementById('detta-lbl').textContent = 'Detta la descrizione';
     document.getElementById('detta-sub').textContent = 'Parla e il testo viene scritto da solo';
-    var testo = trascrittoFinale.trim();
+    var testo = ripulisci(trascrittoFinale);
     if(testo){
       document.getElementById('desc').value = partenza ? partenza + ' ' + testo : testo;
       mostraTrascrizione(testo, false);
