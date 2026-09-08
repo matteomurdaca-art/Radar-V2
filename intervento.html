@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RADAR — Intervento</title>
+<meta name="theme-color" content="#0F0F0F">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="robots" content="noindex, nofollow">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F0F0F; --card:#1A1A1A; --header:#141414;
+  --text:#F2F2F2; --hint:#8A8A8A; --linea:#2A2A2A;
+  --neon:#00E5FF; --ok:#3DD68C; --warn:#FFB020; --bad:#FF5A5A;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  display:flex;flex-direction:column;line-height:1.5;
+}
+
+header{
+  background:var(--header);border-bottom:1px solid var(--linea);
+  padding:14px 18px;display:flex;align-items:center;gap:11px;
+}
+header svg{flex:0 0 auto}
+.marchio{font-size:17px;font-weight:700;letter-spacing:.16em}
+.marchio span{color:var(--neon)}
+.sotto{font-size:11px;color:var(--hint);letter-spacing:.04em}
+
+main{flex:1;padding:18px;max-width:640px;width:100%;margin:0 auto}
+
+.stato{
+  display:inline-flex;align-items:center;gap:7px;border-radius:20px;
+  padding:4px 12px;font-size:12px;font-weight:600;margin-bottom:14px;
+}
+.stato.assegnato{background:rgba(0,229,255,.12);color:var(--neon)}
+.stato.carico   {background:rgba(255,176,32,.12);color:var(--warn)}
+.stato.eseguito,
+.stato.chiuso   {background:rgba(61,214,140,.12);color:var(--ok)}
+
+h1{font-size:21px;font-weight:600;margin-bottom:4px}
+.codice{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--neon)}
+
+.scad{
+  background:var(--card);border:1px solid var(--linea);border-left:3px solid var(--warn);
+  border-radius:9px;padding:11px 13px;margin:14px 0;font-size:13.5px;
+}
+.scad.tardi{border-left-color:var(--bad)}
+.scad b{color:var(--text)}
+
+.blocco{background:var(--card);border:1px solid var(--linea);border-radius:11px;
+  padding:14px;margin-bottom:13px}
+.et{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--hint);margin-bottom:6px}
+.testo{font-size:15px;white-space:pre-wrap;word-break:break-word}
+.blocco img{width:100%;border-radius:9px;display:block;margin-top:4px}
+
+.mappa{
+  display:block;text-align:center;background:var(--card);border:1px solid var(--neon);
+  color:var(--neon);border-radius:11px;padding:13px;text-decoration:none;
+  font-weight:600;font-size:15px;margin-bottom:13px;
+}
+
+.azione{
+  width:100%;border:0;border-radius:12px;padding:16px;font:inherit;
+  font-size:16px;font-weight:700;cursor:pointer;margin-top:11px;
+}
+.azione.prendi{background:var(--neon);color:#06131A}
+.azione.fatto {background:var(--ok);color:#062616}
+.azione:disabled{opacity:.45;cursor:default}
+
+textarea,input[type=file]{
+  width:100%;background:#0B0B0B;color:var(--text);border:1px solid var(--linea);
+  border-radius:9px;padding:11px;font:inherit;font-size:14.5px;margin-top:6px;
+}
+textarea{min-height:88px;resize:vertical}
+
+.avviso{border-radius:10px;padding:12px 13px;font-size:13.5px;margin-top:13px;line-height:1.45}
+.avviso.err {background:rgba(255,90,90,.09);border:1px solid rgba(255,90,90,.32);color:#FF9B9B}
+.avviso.done{background:rgba(61,214,140,.09);border:1px solid rgba(61,214,140,.32);color:#8FE9BE}
+
+.attesa{text-align:center;color:var(--hint);padding:50px 20px;font-size:14.5px}
+footer{padding:16px 18px;text-align:center;color:var(--hint);font-size:11.5px;
+  border-top:1px solid var(--linea)}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true">
+    <circle cx="20" cy="20" r="17" fill="none" stroke="#00E5FF" stroke-opacity=".22" stroke-width="1.6"/>
+    <circle cx="20" cy="20" r="11" fill="none" stroke="#00E5FF" stroke-opacity=".4" stroke-width="1.6"/>
+    <circle cx="20" cy="20" r="2.6" fill="#00E5FF"/>
+  </svg>
+  <div>
+    <div class="marchio">R<span>ADA</span>R</div>
+    <div class="sotto">Intervento assegnato</div>
+  </div>
+</header>
+
+<main>
+  <div class="attesa" id="attesa">Caricamento dell'intervento…</div>
+  <div id="contenuto" hidden></div>
+</main>
+
+<footer>RADAR — questo link è personale, non condividerlo.</footer>
+
+<script src="config.js"></script>
+<script>
+var SUPABASE_URL = window.SUPABASE_URL || 'https://TUO-PROGETTO.supabase.co';
+var SUPABASE_KEY = window.SUPABASE_KEY || 'TUA-CHIAVE-PUBBLICA';
+
+var TOKEN = new URLSearchParams(location.search).get('t') || '';
+var dati = null;
+
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/[&<>"]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+}
+
+function rpc(nome, corpo){
+  return fetch(SUPABASE_URL + '/rest/v1/rpc/' + nome, {
+    method:'POST',
+    headers:{
+      'apikey': SUPABASE_KEY,
+      'Authorization':'Bearer ' + SUPABASE_KEY,
+      'Content-Type':'application/json'
+    },
+    body: JSON.stringify(corpo)
+  }).then(function(r){
+    return r.json().then(function(d){
+      if(!r.ok) throw new Error((d && (d.message || d.hint)) || ('Errore ' + r.status));
+      return d;
+    });
+  });
+}
+
+function giorniA(data){
+  if(!data) return null;
+  var oggi = new Date(); oggi.setHours(0,0,0,0);
+  return Math.round((new Date(data) - oggi) / 86400000);
+}
+
+function disegna(){
+  var stati = {
+    assegnato:'Da prendere in carico',
+    carico:'In lavorazione',
+    eseguito:'Eseguito',
+    chiuso:'Chiuso dal Comune',
+    annullato:'Annullato'
+  };
+  var g = giorniA(dati.scadenza);
+  var scad = '';
+  if(dati.scadenza && ['assegnato','carico'].indexOf(dati.stato) !== -1){
+    scad = '<div class="scad' + (g < 0 ? ' tardi' : '') + '">' +
+      (g < 0
+        ? 'In ritardo di <b>' + Math.abs(g) + ' giorni</b> rispetto ai tempi previsti.'
+        : (g === 0 ? 'Da completare <b>entro oggi</b>.'
+                   : 'Da completare entro <b>' + g + ' giorni</b>.')) +
+      '</div>';
+  }
+
+  var mappa = (dati.lat != null)
+    ? '<a class="mappa" href="https://www.google.com/maps?q=' + dati.lat + ',' + dati.lng +
+      '" target="_blank" rel="noopener">Apri la posizione in mappa</a>'
+    : '';
+
+  var foto = dati.foto_url
+    ? '<div class="blocco"><div class="et">Foto della segnalazione</div>' +
+      '<img src="' + esc(dati.foto_url) + '" alt="Foto del problema segnalato"></div>'
+    : '';
+
+  var azioni = '';
+  if(dati.stato === 'assegnato'){
+    azioni = '<button class="azione prendi" id="btn-prendi">Prendo in carico</button>';
+  }
+  if(dati.stato === 'assegnato' || dati.stato === 'carico'){
+    azioni += '<div class="blocco" style="margin-top:16px">' +
+      '<div class="et">Quando hai finito</div>' +
+      '<textarea id="nota" placeholder="Cosa hai fatto (facoltativo)"></textarea>' +
+      '<div class="et" style="margin-top:11px">Foto del lavoro eseguito (facoltativa)</div>' +
+      '<input type="file" id="foto" accept="image/*" capture="environment">' +
+      '<button class="azione fatto" id="btn-fatto">Lavoro eseguito</button>' +
+      '</div>';
+  }
+  if(dati.stato === 'eseguito' || dati.stato === 'chiuso'){
+    azioni = '<div class="avviso done">Intervento segnalato come eseguito. ' +
+      'Il Comune lo verificherà e provvederà alla chiusura. Non serve fare altro.' +
+      (dati.nota_impresa ? '<br><br>Nota registrata: ' + esc(dati.nota_impresa) : '') +
+      '</div>';
+  }
+
+  document.getElementById('contenuto').innerHTML =
+    '<div class="stato ' + esc(dati.stato) + '">' + (stati[dati.stato] || dati.stato) + '</div>' +
+    '<h1>' + esc(dati.categoria) + (dati.urgenza ? ' — urgenza ' + esc(dati.urgenza) : '') + '</h1>' +
+    '<div class="codice">' + esc(dati.codice) + ' · assegnato a ' + esc(dati.impresa) + '</div>' +
+    scad +
+    '<div class="blocco"><div class="et">Problema segnalato</div>' +
+      '<div class="testo">' + esc(dati.descrizione) + '</div></div>' +
+    foto +
+    mappa +
+    azioni +
+    '<div class="avviso err" id="errore" hidden></div>';
+
+  document.getElementById('attesa').hidden = true;
+  document.getElementById('contenuto').hidden = false;
+
+  var bp = document.getElementById('btn-prendi');
+  if(bp) bp.onclick = prendiInCarico;
+  var bf = document.getElementById('btn-fatto');
+  if(bf) bf.onclick = segnaEseguito;
+}
+
+function mostraErrore(msg){
+  var e = document.getElementById('errore');
+  if(e){ e.textContent = msg; e.hidden = false; }
+  else { document.getElementById('attesa').textContent = msg; }
+}
+
+function prendiInCarico(){
+  var b = document.getElementById('btn-prendi');
+  b.disabled = true; b.textContent = 'Registrazione…';
+  rpc('intervento_preso', { p_token: TOKEN })
+    .then(carica)
+    .catch(function(err){
+      b.disabled = false; b.textContent = 'Prendo in carico';
+      mostraErrore('Non registrato: ' + err.message);
+    });
+}
+
+function caricaFoto(file){
+  if(!file) return Promise.resolve(null);
+  var d = new Date();
+  var path = 'esiti/' + d.getFullYear() + '/' +
+    String(d.getMonth() + 1).padStart(2,'0') + '/' +
+    (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + '.jpg';
+  return fetch(SUPABASE_URL + '/storage/v1/object/allegati/' + path, {
+    method:'POST',
+    headers:{
+      'apikey': SUPABASE_KEY,
+      'Authorization':'Bearer ' + SUPABASE_KEY,
+      'Content-Type': file.type || 'image/jpeg'
+    },
+    body: file
+  }).then(function(r){
+    if(!r.ok) throw new Error('foto non caricata');
+    return path;
+  });
+}
+
+function segnaEseguito(){
+  var b = document.getElementById('btn-fatto');
+  var nota = document.getElementById('nota').value;
+  var file = document.getElementById('foto').files[0];
+  b.disabled = true; b.textContent = 'Invio in corso…';
+
+  caricaFoto(file)
+    .catch(function(){ return null; })   // la foto non deve bloccare la chiusura
+    .then(function(path){
+      return rpc('intervento_eseguito', { p_token: TOKEN, p_nota: nota, p_foto: path });
+    })
+    .then(carica)
+    .catch(function(err){
+      b.disabled = false; b.textContent = 'Lavoro eseguito';
+      mostraErrore('Non registrato: ' + err.message);
+    });
+}
+
+function carica(){
+  return rpc('intervento_apri', { p_token: TOKEN })
+    .then(function(d){ dati = d; disegna(); })
+    .catch(function(err){
+      document.getElementById('contenuto').hidden = true;
+      document.getElementById('attesa').textContent =
+        'Questo link non è valido o non è più attivo. Contatta l\'ufficio tecnico del Comune.';
+    });
+}
+
+if(!TOKEN){
+  document.getElementById('attesa').textContent =
+    'Link incompleto. Apri il collegamento ricevuto dal Comune senza modificarlo.';
+} else if(SUPABASE_URL.indexOf('TUO-PROGETTO') !== -1){
+  document.getElementById('attesa').textContent =
+    'Configurazione mancante: compila config.js.';
+} else {
+  carica();
+}
+</script>
+</body>
+</html>
