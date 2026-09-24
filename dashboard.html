@@ -32,6 +32,7 @@
   --body:"Inter",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
   --r:10px;
+  --ciano:var(--cyan);--panel:var(--surface);--linea:var(--line);--testo:var(--text);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -317,6 +318,52 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 .simile:hover{border-color:var(--ciano)}
 .simile .cod{font-family:var(--mono);color:var(--ciano);font-size:11px}
 .simile .qta{color:var(--muted);font-size:11px;display:block;margin-top:2px}
+
+/* --- Sezioni (Segnalazioni / Casa) e avvisi --- */
+.brand h1 span{color:inherit}
+.shell[hidden]{display:none}
+.sezioni{display:flex;gap:3px;margin-left:10px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:3px}
+.sez{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:99px;font-family:var(--display);font-size:13px;color:var(--muted);transition:background .12s,color .12s}
+.sez:hover{color:var(--text)}
+.sez[aria-selected="true"]{background:var(--cyan-dim);color:var(--cyan)}
+.notif{min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#FF4C4C;color:#fff;font-family:var(--mono);font-size:10.5px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.notif[hidden]{display:none}
+.notif.pop{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
+.campana{position:relative;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none}
+.campana:hover{border-color:var(--cyan);color:var(--cyan)}
+.campana[aria-pressed="true"]{color:var(--cyan);border-color:rgba(0,229,255,.4);background:var(--cyan-dim)}
+.campana .notif{position:absolute;top:-6px;right:-8px}
+.card.unread h3::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);margin-right:8px;vertical-align:middle}
+.card.unread{border-color:rgba(0,229,255,.28)}
+.toasts{position:fixed;right:18px;bottom:18px;z-index:120;display:flex;flex-direction:column;gap:8px;max-width:340px}
+.toast{background:var(--surface-2);border:1px solid rgba(0,229,255,.4);border-left:3px solid var(--cyan);border-radius:var(--r);padding:11px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);text-align:left;color:var(--text);animation:entra .25s ease}
+.toast .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:3px}
+.toast .t{font-size:13px}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
+.kpi b{display:block;font-family:var(--display);font-size:22px;font-weight:500}
+.kpi span{font-size:11.5px;color:var(--muted);line-height:1.35;display:block}
+.kpi .largo{grid-column:1/-1}
+.kpi .largo b{font-size:14px;margin-bottom:2px}
+.side-note{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+.tipo-casa{color:#A78BFA;border-color:rgba(167,139,250,.35)}
+.tipo-fam{color:#F472B6;border-color:rgba(244,114,182,.35)}
+.match-row{display:flex;gap:6px;align-items:stretch}
+.match-row .simile{flex:1}
+.abbina{padding:0 12px;border-radius:9px;border:1px solid rgba(52,211,153,.4);color:var(--risolta);font-size:12px;font-weight:500}
+.abbina:hover{background:rgba(52,211,153,.08)}
+.vuota{font-size:12.5px;color:var(--muted);border:1px dashed var(--line);border-radius:9px;padding:10px 12px}
+@media (max-width:980px){
+  .sezioni{margin-left:auto}
+  .live{display:none}
+  .sez{padding:6px 10px}
+}
+@media (max-width:520px){
+  .brand > div{display:none}
+  .topbar{gap:10px;padding:12px 14px}
+}
 </style>
 </head>
 <body>
@@ -353,14 +400,22 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
       <div class="sub">Dashboard comunale</div>
     </div>
   </div>
+  <nav class="sezioni" role="tablist" aria-label="Sezioni della dashboard">
+    <button class="sez" role="tab" id="tabSeg" data-vista="seg" aria-selected="true">Segnalazioni <span class="notif" id="notifSeg" hidden></span></button>
+    <button class="sez" role="tab" id="tabCasa" data-vista="casa" aria-selected="false">Casa <span class="notif" id="notifCasa" hidden></span></button>
+  </nav>
   <div class="live"><span class="dot"></span> In ascolto</div>
+  <button class="campana" id="btnAvvisi" aria-pressed="false" title="Attiva avvisi sonori e notifiche">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    <span class="notif" id="notifTot" hidden></span>
+  </button>
   <div class="comune">
     <div class="nome" id="nomeComune">Comune DEMO</div>
     <div class="ruolo" id="ruoloOperatore">non connesso</div>
   </div>
 </header>
 
-<div class="shell">
+<div class="shell" id="vistaSeg">
 
   <!-- Colonna sinistra: scope + filtri -->
   <aside class="col col-side scroll">
@@ -418,6 +473,52 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 
 </div>
 
+
+<div class="shell" id="vistaCasa" hidden>
+  <aside class="col col-side scroll">
+    <div class="side-sec" style="border-top:0">
+      <h2>In sintesi</h2>
+      <div class="kpi">
+        <div><b id="kCase">0</b><span>case pronte o quasi</span></div>
+        <div><b id="kFam">0</b><span>famiglie in attesa</span></div>
+        <div><b id="kAbb">0</b><span>abbinamenti fatti</span></div>
+        <div><b id="kRistr">0</b><span>case da ristrutturare</span></div>
+        <div class="largo"><b id="kFreno">—</b><span>il freno più citato dai proprietari</span></div>
+      </div>
+    </div>
+    <div class="side-sec">
+      <h2>Stato</h2>
+      <div id="filtriCasa"></div>
+    </div>
+    <div class="side-sec">
+      <h2>Modulo per i cittadini</h2>
+      <p class="side-note">Il link da diffondere a proprietari, servizi sociali e sportello.</p>
+      <button class="ghost" id="btnLinkCasa">Copia link del modulo</button>
+    </div>
+  </aside>
+
+  <main class="col scroll">
+    <div class="list-head">
+      <input class="search" id="qCasa" type="search" placeholder="Cerca per comune, zona, codice o nome…" aria-label="Cerca nelle richieste casa">
+      <select class="search" id="tipoCasa" aria-label="Filtra per tipo">
+        <option value="">Case e famiglie</option>
+        <option value="offerta">Solo case</option>
+        <option value="richiesta">Solo famiglie</option>
+      </select>
+      <select class="search" id="comuneCasa" aria-label="Filtra per comune">
+        <option value="">Tutti i comuni</option>
+      </select>
+    </div>
+    <div class="cards" id="listaCasa"></div>
+  </main>
+
+  <section class="col col-detail scroll" id="pannelloCasa">
+    <button class="close-detail" id="btnChiudiCasa">← Torna all'elenco</button>
+    <div id="dettaglioCasa"></div>
+  </section>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
 <script src="config.js"></script>
 <script>
 /* =========================================================
@@ -435,7 +536,7 @@ var SUPABASE_KEY = window.SUPABASE_KEY || 'TUA-CHIAVE-PUBBLICA';
 
 const MUNICIPIO = { lat: 45.5628, lng: 8.0583 }; // centro dello scope
 const RAGGIO_KM = 3;
-const RICARICA_MS = 60000;                       // aggiornamento automatico
+const RICARICA_MS = 30000;                       // aggiornamento automatico
 
 const STATI = {
   nuova:    { label: "Nuova",       colore: "var(--nuova)"   },
@@ -673,6 +774,7 @@ function caricaDati(){
     if (selezionata && !SEGNALAZIONI.some(s => s.id === selezionata)) selezionata = null;
     render();
     segnaAggiornamento();
+    controllaNuove("seg", SEGNALAZIONI.map(s => ({ id: s.id, stato: s.stato, titolo: s.titolo })));
   });
 }
 
@@ -788,7 +890,7 @@ function disegnaLista(){
   }
   el.innerHTML = dati.map(s => {
     const st = STATI[s.stato];
-    return `<button class="card ${selezionata===s.id?"on":""}" data-id="${s.id}"
+    return `<button class="card ${selezionata===s.id?"on":""}${nonLetta("seg", s.id, s.stato)?" unread":""}" data-id="${s.id}"
               style="border-left-color:${st.colore}">
       <div class="card-top">
         <span class="code">${s.id}</span>
@@ -973,25 +1075,26 @@ function render(){
 }
 
 function apri(id){
+  segnaLetto("seg", id);
   selezionata = id;
   render();
   if (window.innerWidth <= 980) $("#pannello").classList.add("open");
 }
 
 document.addEventListener("click", e => {
-  const stat = e.target.closest(".stat");
+  const stat = e.target.closest(".stat:not([data-casa])");
   if (stat){ filtroStato = stat.dataset.stato || null; render(); return; }
 
-  const card = e.target.closest(".card");
+  const card = e.target.closest(".card:not([data-casa])");
   if (card){ apri(card.dataset.id); return; }
 
   const blip = e.target.closest(".blip");
   if (blip){ apri(blip.dataset.id); return; }
 
-  const sim = e.target.closest(".simile");
+  const sim = e.target.closest(".simile:not([data-casa])");
   if (sim){ apri(sim.dataset.id); return; }
 
-  const act = e.target.closest(".act");
+  const act = e.target.closest(".act:not([data-casa])");
   if (act && !act.disabled){ cambiaStato(act.dataset.azione); return; }
 
   if (e.target.closest("#btnNota")){ salvaNota(); return; }
@@ -1012,13 +1115,451 @@ $("#q").addEventListener("input", () => { disegnaLista(); disegnaBlips(); });
 $("#cat").addEventListener("change", () => { disegnaLista(); disegnaBlips(); });
 $("#raggruppa").addEventListener("change", () => { disegnaLista(); });
 
+/* =========================================================
+   SEZIONE CASA — case sfitte offerte e famiglie che cercano casa
+   I dati arrivano dal modulo casa.html (tabella casa_richieste).
+   ========================================================= */
+
+const STATI_CASA = {
+  nuova:       { label: "Nuova",       colore: "var(--nuova)"    },
+  in_verifica: { label: "In verifica", colore: "var(--carico)"   },
+  abbinata:    { label: "Abbinata",    colore: "var(--risolta)"  },
+  chiusa:      { label: "Chiusa",      colore: "var(--respinta)" }
+};
+const STATO_CASA_TXT = { pronta: "Pronta da abitare", piccoli_lavori: "Servono piccoli lavori", da_ristrutturare: "Da ristrutturare" };
+const FRENI_TXT = { morosita: "Paura di non essere pagato", sfratto: "Tempi per riaverla", danni: "Paura di danni",
+  pratiche: "Pratiche e contratti", disposizione: "Tenerla a disposizione", agevolazioni: "Non conosce le agevolazioni" };
+const ESIG_TXT = { senza_barriere: "Casa senza barriere", animali: "Animali", arredata: "Arredata" };
+
+let CASA = [];
+let casaSel = null;
+let filtroCasa = null;
+let erroreCasa = null;
+let vista = "seg";
+
+function locali(n){ return n ? (n >= 5 ? "5+ locali" : n + (n === 1 ? " locale" : " locali")) : "locali n.d."; }
+
+function titoloCasa(r){
+  const d = r.dati || {};
+  return r.tipo === "offerta"
+    ? `Casa ${locali(d.locali)}${d.mq ? ", " + d.mq + " m²" : ""}`
+    : `Famiglia di ${d.persone || "?"} ${d.persone === 1 ? "persona" : "persone"}`;
+}
+function sottotitoloCasa(r){
+  const d = r.dati || {};
+  const luogo = r.comune + (d.zona ? " — " + d.zona : "");
+  return r.tipo === "offerta"
+    ? `${luogo} · ${STATO_CASA_TXT[d.stato] || "stato n.d."}`
+    : `${luogo} · min ${locali(d.locali_min)} · fino a €${d.budget || "?"} al mese`;
+}
+
+function caricaCasa(){
+  return api("/rest/v1/casa_richieste?select=*&order=creata_il.desc")
+    .then(righe => {
+      erroreCasa = null;
+      CASA = righe || [];
+      aggiornaComuniCasa();
+      if (casaSel && !CASA.some(r => r.id === casaSel)) casaSel = null;
+      renderCasa();
+      controllaNuove("casa", CASA.map(r => ({ id: r.id, stato: r.stato, titolo: titoloCasa(r) + " · " + r.comune })));
+    })
+    .catch(err => {
+      const m = String(err && err.message || err);
+      if (m.indexOf("SESSIONE_SCADUTA") !== -1) throw err;
+      erroreCasa = m;
+      renderCasa();
+    });
+}
+
+function caricaTutto(){
+  return Promise.all([caricaDati(), caricaCasa()]);
+}
+
+function aggiornaComuniCasa(){
+  const sel = $("#comuneCasa"), scelta = sel.value;
+  sel.innerHTML = '<option value="">Tutti i comuni</option>' +
+    [...new Set(CASA.map(r => r.comune))].sort().map(c => `<option>${esc(c)}</option>`).join("");
+  sel.value = scelta;
+}
+
+function visibiliCasa(){
+  const q = ($("#qCasa").value || "").trim().toLowerCase();
+  const t = $("#tipoCasa").value, c = $("#comuneCasa").value;
+  return CASA.filter(r => {
+    if (filtroCasa && r.stato !== filtroCasa) return false;
+    if (t && r.tipo !== t) return false;
+    if (c && r.comune !== c) return false;
+    if (q){
+      const d = r.dati || {};
+      const testo = [r.codice, r.comune, d.zona, r.nome, d.note, r.note_comune].join(" ").toLowerCase();
+      if (!testo.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function disegnaKpiCasa(){
+  const c = $("#comuneCasa").value;
+  const base = CASA.filter(r => !c || r.comune === c);
+  const aperta = r => r.stato === "nuova" || r.stato === "in_verifica";
+  $("#kCase").textContent  = base.filter(r => r.tipo === "offerta" && aperta(r) && (r.dati||{}).stato !== "da_ristrutturare").length;
+  $("#kFam").textContent   = base.filter(r => r.tipo === "richiesta" && aperta(r)).length;
+  $("#kAbb").textContent   = base.filter(r => r.tipo === "offerta" && r.stato === "abbinata").length;
+  $("#kRistr").textContent = base.filter(r => r.tipo === "offerta" && aperta(r) && (r.dati||{}).stato === "da_ristrutturare").length;
+  const conta = {};
+  base.forEach(r => { if (r.tipo === "offerta") ((r.dati||{}).freni || []).forEach(f => conta[f] = (conta[f] || 0) + 1); });
+  const top = Object.keys(conta).sort((a, b) => conta[b] - conta[a])[0];
+  $("#kFreno").textContent = top ? FRENI_TXT[top] + ` (${conta[top]})` : "—";
+}
+
+function disegnaFiltriCasa(){
+  const voci = [["", "Tutte", CASA.length]]
+    .concat(Object.keys(STATI_CASA).map(k => [k, STATI_CASA[k].label, CASA.filter(r => r.stato === k).length]));
+  $("#filtriCasa").innerHTML = voci.map(([k, label, n]) => `
+    <button class="stat" data-casa data-stato="${k}" aria-pressed="${filtroCasa === (k || null)}">
+      <span class="lb">${label}</span><span class="n">${n}</span>
+    </button>`).join("");
+}
+
+function disegnaListaCasa(){
+  const el = $("#listaCasa");
+  if (erroreCasa){
+    const manca = /casa_richieste|does not exist|PGRST20|404/i.test(erroreCasa);
+    el.innerHTML = `<div class="empty"><strong>${manca ? "Sezione Casa non ancora attiva" : "Dati non leggibili"}</strong>
+      ${manca ? "Esegui su Supabase lo script supabase-casa.sql (SQL Editor, poi Run) e ricarica la pagina."
+              : esc(erroreCasa)}</div>`;
+    return;
+  }
+  const dati = visibiliCasa();
+  if (!dati.length){
+    el.innerHTML = `<div class="empty"><strong>Nessuna richiesta</strong>
+      ${CASA.length ? "Nessun risultato con questi filtri."
+        : "Non è ancora arrivato nulla. Diffondi il link del modulo con il pulsante a sinistra."}</div>`;
+    return;
+  }
+  el.innerHTML = dati.map(r => {
+    const st = STATI_CASA[r.stato] || STATI_CASA.nuova;
+    const casa = r.tipo === "offerta";
+    const n = compatibili(r).length;
+    return `<button class="card${casaSel === r.id ? " on" : ""}${nonLetta("casa", r.id, r.stato) ? " unread" : ""}" data-casa data-id="${r.id}"
+              style="border-left-color:${st.colore}">
+      <div class="card-top">
+        <span class="code">${esc(r.codice)}</span>
+        <span class="badge" style="color:${st.colore}">${st.label}</span>
+        <span class="when">${quando(r.creata_il)}</span>
+      </div>
+      <h3>${esc(titoloCasa(r))}</h3>
+      <p class="addr">${esc(sottotitoloCasa(r))}</p>
+      <div class="tags">
+        <span class="tag ${casa ? "tipo-casa" : "tipo-fam"}">${casa ? "Casa offerta" : "Cerca casa"}</span>
+        ${n && r.stato !== "abbinata" && r.stato !== "chiusa" ? `<span class="dupe">${n} compatibil${n === 1 ? "e" : "i"}</span>` : ""}
+      </div>
+    </button>`;
+  }).join("");
+}
+
+/* Compatibili: stesso comune, pratica aperta, locali sufficienti,
+   casa non da ristrutturare, arredo se richiesto. Il canone concordato
+   va poi verificato a mano con l'affitto massimo della famiglia. */
+function compatibili(r){
+  return CASA.filter(x => {
+    if (x.tipo === r.tipo || x.comune !== r.comune) return false;
+    if (x.stato === "chiusa" || x.stato === "abbinata") return false;
+    const casa = r.tipo === "offerta" ? (r.dati||{}) : (x.dati||{});
+    const fam  = r.tipo === "offerta" ? (x.dati||{}) : (r.dati||{});
+    if (casa.stato === "da_ristrutturare") return false;
+    if (fam.locali_min && casa.locali && casa.locali < fam.locali_min) return false;
+    if ((fam.esigenze || []).includes("arredata") && casa.arredo === "no") return false;
+    return true;
+  });
+}
+
+function campo(k, v){ return `<div class="field"><div class="k">${k}</div><div class="v">${v}</div></div>`; }
+
+function disegnaDettaglioCasa(){
+  const box = $("#dettaglioCasa");
+  const r = CASA.find(x => x.id === casaSel);
+  if (!r){
+    box.innerHTML = `<div class="placeholder">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#1C2A38" stroke-width="1.5" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+      <p>Scegli una casa o una famiglia dall'elenco per vedere il dettaglio e gli abbinamenti possibili.</p>
+    </div>`;
+    return;
+  }
+  const d = r.dati || {}, st = STATI_CASA[r.stato] || STATI_CASA.nuova, casa = r.tipo === "offerta";
+  const righe = casa ? [
+      campo("Locali e superficie", esc(locali(d.locali)) + (d.mq ? " · " + d.mq + " m²" : "")),
+      campo("Stato della casa", esc(STATO_CASA_TXT[d.stato] || "—")),
+      campo("Arredata", esc({ si: "Sì", parziale: "In parte", no: "No" }[d.arredo] || "—")),
+      campo("Cosa ha frenato il proprietario", esc((d.freni || []).map(f => FRENI_TXT[f]).join(", ") || "—"))
+    ] : [
+      campo("Persone nel nucleo", esc(d.persone || "—")),
+      campo("Locali minimi", esc(locali(d.locali_min))),
+      campo("Affitto massimo", "€" + esc(d.budget || "—") + " al mese"),
+      campo("Esigenze", esc((d.esigenze || []).map(e => ESIG_TXT[e]).join(", ") || "—")),
+      campo("In graduatoria case popolari", esc({ si: "Sì", no: "No", non_so: "Non sa" }[d.graduatoria] || "—"))
+    ];
+  const comp = compatibili(r);
+  const aperta = r.stato !== "abbinata" && r.stato !== "chiusa";
+
+  box.innerHTML = `<div class="detail">
+    <div class="detail-head">
+      <span class="code">${esc(r.codice)} · ${casa ? "Casa offerta" : "Famiglia che cerca casa"}</span>
+      <h2>${esc(titoloCasa(r))}</h2>
+      <span class="badge" style="color:${st.colore}">${st.label}</span>
+      <span class="when" style="margin-left:8px">${dataEstesa(r.creata_il)}</span>
+    </div>
+    ${campo("Comune e zona", esc(r.comune) + (d.zona ? " — " + esc(d.zona) : ""))}
+    ${righe.join("")}
+    ${d.note ? `<div class="field"><div class="k">Note del cittadino</div><div class="quote">${esc(d.note)}</div></div>` : ""}
+    ${campo("Contatto", esc(r.nome) + `<br><span class="mono" style="color:var(--muted)">${esc(r.contatto)}</span>`)}
+
+    <div class="field">
+      <div class="k">${casa ? "Famiglie compatibili" : "Case compatibili"} (${aperta ? comp.length : 0})</div>
+      ${!aperta ? '<div class="vuota">Pratica già ' + st.label.toLowerCase() + '.</div>'
+        : comp.length ? `<div class="simili-lista">${comp.map(x => `
+          <div class="match-row">
+            <button class="simile" data-casa data-id="${x.id}">
+              <span class="cod">${esc(x.codice)}</span> · ${esc(titoloCasa(x))}
+              <span class="qta">${esc(sottotitoloCasa(x))}</span>
+            </button>
+            <button class="abbina" data-casa data-con="${x.id}" title="Segna le due pratiche come abbinate">Abbina</button>
+          </div>`).join("")}</div>
+          <p class="side-note" style="margin-top:8px">Prima di abbinare, verifica che il canone concordato stia nell'affitto massimo della famiglia.</p>`
+        : '<div class="vuota">Nessuna corrispondenza nello stesso comune per ora.</div>'}
+    </div>
+
+    <div class="field">
+      <div class="k">Nota interna</div>
+      <textarea class="note" id="notaCasa" placeholder="Sopralluogo, documenti, esito del colloquio…">${esc(r.note_comune || "")}</textarea>
+      <button class="ghost" id="btnNotaCasa" data-casa style="margin-top:8px">Salva nota</button>
+    </div>
+
+    <div class="actions">
+      <button class="act primary" data-casa data-azione="in_verifica" ${r.stato !== "nuova" ? "disabled" : ""}>Metti in verifica</button>
+      <button class="act ok" data-casa data-azione="abbinata" ${!aperta ? "disabled" : ""}>Segna abbinata</button>
+      <button class="act no wide" data-casa data-azione="chiusa" ${r.stato === "chiusa" ? "disabled" : ""}>Chiudi pratica</button>
+    </div>
+    <div class="err-azione" id="errCasa" hidden></div>
+  </div>`;
+}
+
+function renderCasa(){
+  disegnaKpiCasa();
+  disegnaFiltriCasa();
+  disegnaListaCasa();
+  disegnaDettaglioCasa();
+  aggiornaBadge();
+}
+
+function apriCasa(id){
+  segnaLetto("casa", id);
+  casaSel = id;
+  renderCasa();
+  if (window.innerWidth <= 980) $("#pannelloCasa").classList.add("open");
+}
+
+function aggiornaCasa(id, campi){
+  return api("/rest/v1/casa_richieste?id=eq." + id, {
+    method: "PATCH", headers: { "Prefer": "return=minimal" }, body: JSON.stringify(campi)
+  });
+}
+function erroreAzioneCasa(msg){ const e = $("#errCasa"); if (e){ e.textContent = msg; e.hidden = false; } }
+
+function abbina(idA, idB){
+  const a = CASA.find(x => x.id === idA), b = CASA.find(x => x.id === idB);
+  if (!a || !b) return;
+  const data = new Date().toLocaleDateString("it-IT");
+  const nota = (r, altro) => ((r.note_comune ? r.note_comune + "\n" : "") + `Abbinata con ${altro.codice} il ${data}`);
+  Promise.all([
+    aggiornaCasa(a.id, { stato: "abbinata", note_comune: nota(a, b) }),
+    aggiornaCasa(b.id, { stato: "abbinata", note_comune: nota(b, a) })
+  ]).then(caricaCasa).then(() => mostraToast("Abbinamento registrato", `${a.codice} con ${b.codice}`, null))
+    .catch(err => erroreAzioneCasa("Abbinamento non salvato: " + err.message));
+}
+
+document.addEventListener("click", e => {
+  const sez = e.target.closest(".sez");
+  if (sez){ mostraVista(sez.dataset.vista); return; }
+  if (e.target.closest("#btnAvvisi")){ attivaAvvisi(); return; }
+  const toast = e.target.closest(".toast");
+  if (toast){ if (toast.dataset.vista) mostraVista(toast.dataset.vista);
+              if (toast.dataset.id) (toast.dataset.vista === "casa" ? apriCasa : apri)(toast.dataset.id);
+              toast.remove(); return; }
+
+  if (!e.target.closest("[data-casa]") && !e.target.closest("#btnChiudiCasa") && !e.target.closest("#btnLinkCasa")) return;
+  const stat = e.target.closest(".stat[data-casa]");
+  if (stat){ filtroCasa = stat.dataset.stato || null; renderCasa(); return; }
+  const ab = e.target.closest(".abbina[data-casa]");
+  if (ab){ abbina(casaSel, ab.dataset.con); return; }
+  const card = e.target.closest(".card[data-casa], .simile[data-casa]");
+  if (card){ apriCasa(card.dataset.id); return; }
+  const act = e.target.closest(".act[data-casa]");
+  if (act && !act.disabled){
+    aggiornaCasa(casaSel, { stato: act.dataset.azione }).then(caricaCasa)
+      .catch(err => erroreAzioneCasa("Stato non aggiornato: " + err.message));
+    return;
+  }
+  if (e.target.closest("#btnNotaCasa")){
+    const btn = $("#btnNotaCasa"), testo = $("#notaCasa").value;
+    btn.disabled = true; btn.textContent = "Salvataggio…";
+    aggiornaCasa(casaSel, { note_comune: testo })
+      .then(() => { const r = CASA.find(x => x.id === casaSel); if (r) r.note_comune = testo;
+                    btn.textContent = "Nota salvata"; setTimeout(() => { btn.textContent = "Salva nota"; btn.disabled = false; }, 1800); })
+      .catch(err => { btn.disabled = false; btn.textContent = "Salva nota"; erroreAzioneCasa("Nota non salvata: " + err.message); });
+    return;
+  }
+  if (e.target.closest("#btnChiudiCasa")){ $("#pannelloCasa").classList.remove("open"); return; }
+  if (e.target.closest("#btnLinkCasa")){
+    const link = new URL("casa.html", location.href).href, b = $("#btnLinkCasa");
+    (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject())
+      .then(() => { b.textContent = "Link copiato"; }, () => { b.textContent = link; })
+      .finally(() => setTimeout(() => b.textContent = "Copia link del modulo", 2500));
+  }
+});
+
+$("#qCasa").addEventListener("input", () => disegnaListaCasa());
+$("#tipoCasa").addEventListener("change", () => disegnaListaCasa());
+$("#comuneCasa").addEventListener("change", () => { disegnaKpiCasa(); disegnaListaCasa(); });
+
+function mostraVista(v){
+  vista = v === "casa" ? "casa" : "seg";
+  $("#vistaSeg").hidden = vista !== "seg";
+  $("#vistaCasa").hidden = vista !== "casa";
+  $("#tabSeg").setAttribute("aria-selected", String(vista === "seg"));
+  $("#tabCasa").setAttribute("aria-selected", String(vista === "casa"));
+  try { history.replaceState(null, "", location.pathname + location.search + (vista === "casa" ? "#casa" : "")); } catch(e){}
+}
+
+/* =========================================================
+   AVVISI — pallino sulle pratiche non lette, contatore sulle
+   sezioni, suono e notifica del browser quando arriva qualcosa.
+   "Non letta" = pratica nuova che nessuno ha ancora aperto da
+   questo browser. Le prime pratiche trovate al primo avvio
+   vengono considerate già lette.
+   ========================================================= */
+
+const CHIAVE_LETTI = "radar_letti_v1", CHIAVE_AVVISI = "radar_avvisi_v1";
+const TITOLO_BASE = document.title;
+const conosciuti = { seg: null, casa: null };
+let letti = { seg: null, casa: null };
+let elenchi = { seg: [], casa: [] };
+let avvisiAttivi = false;
+let audioCtx = null;
+
+try { const v = JSON.parse(localStorage.getItem(CHIAVE_LETTI) || "{}");
+      letti.seg = v.seg ? new Set(v.seg) : null; letti.casa = v.casa ? new Set(v.casa) : null; } catch(e){}
+try { avvisiAttivi = localStorage.getItem(CHIAVE_AVVISI) === "1"; } catch(e){}
+
+function salvaLetti(){
+  try { localStorage.setItem(CHIAVE_LETTI, JSON.stringify({
+    seg: letti.seg ? [...letti.seg].slice(-2000) : null,
+    casa: letti.casa ? [...letti.casa].slice(-2000) : null })); } catch(e){}
+}
+function nonLetta(sez, id, stato){ return stato === "nuova" && letti[sez] && !letti[sez].has(id); }
+function segnaLetto(sez, id){
+  if (!letti[sez]) letti[sez] = new Set();
+  if (!letti[sez].has(id)){ letti[sez].add(id); salvaLetti(); aggiornaBadge(); }
+}
+
+function controllaNuove(sez, lista){
+  elenchi[sez] = lista;
+  if (!letti[sez]){ letti[sez] = new Set(lista.map(x => x.id)); salvaLetti(); }  // primo avvio
+  if (conosciuti[sez]){
+    const nuove = lista.filter(x => !conosciuti[sez].has(x.id) && x.stato === "nuova");
+    if (nuove.length) avvisa(sez, nuove);
+  }
+  conosciuti[sez] = new Set(lista.map(x => x.id));
+  aggiornaBadge(true);
+}
+
+function contaNonLette(sez){ return elenchi[sez].filter(x => nonLetta(sez, x.id, x.stato)).length; }
+
+let ultimoConteggio = { seg: 0, casa: 0 };
+function aggiornaBadge(animato){
+  const n = { seg: contaNonLette("seg"), casa: contaNonLette("casa") };
+  [["seg", "#notifSeg"], ["casa", "#notifCasa"]].forEach(([k, sel]) => {
+    const b = $(sel); if (!b) return;
+    b.hidden = !n[k]; b.textContent = n[k] > 99 ? "99+" : n[k];
+    if (animato && n[k] > ultimoConteggio[k]){ b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop"); }
+  });
+  ultimoConteggio = n;
+  const tot = n.seg + n.casa, bt = $("#notifTot");
+  if (bt){ bt.hidden = !tot; bt.textContent = tot > 99 ? "99+" : tot; }
+  document.title = (tot ? `(${tot}) ` : "") + TITOLO_BASE;
+}
+
+function avvisa(sez, nuove){
+  const casa = sez === "casa";
+  const titolo = nuove.length === 1
+    ? (casa ? "Nuova richiesta casa" : "Nuova segnalazione")
+    : `${nuove.length} ${casa ? "nuove richieste casa" : "nuove segnalazioni"}`;
+  const testo = nuove.length === 1 ? nuove[0].titolo : nuove.slice(0, 3).map(x => x.titolo).join(" · ");
+  mostraToast(titolo, testo, nuove.length === 1 ? { vista: sez, id: nuove[0].id } : { vista: sez });
+  if (!avvisiAttivi) return;
+  suona();
+  if ("Notification" in window && Notification.permission === "granted" && document.hidden){
+    try {
+      const n = new Notification("RADAR — " + titolo, { body: testo, icon: "icon-192.png", tag: "radar-" + sez });
+      n.onclick = () => { window.focus(); mostraVista(sez); if (nuove.length === 1) (casa ? apriCasa : apri)(nuove[0].id); n.close(); };
+    } catch(e){}
+  }
+}
+
+function mostraToast(titolo, testo, dove){
+  const box = $("#toasts"); if (!box) return;
+  const t = document.createElement("button");
+  t.className = "toast";
+  if (dove){ t.dataset.vista = dove.vista; if (dove.id) t.dataset.id = dove.id; }
+  t.innerHTML = `<div class="k">${esc(titolo)}</div><div class="t">${esc(testo)}</div>`;
+  box.appendChild(t);
+  setTimeout(() => t.remove(), 9000);
+}
+
+function suona(){
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    [0, 0.16].forEach((ritardo, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t0 = audioCtx.currentTime + ritardo;
+      o.type = "sine"; o.frequency.value = i ? 1320 : 880;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+      o.connect(g); g.connect(audioCtx.destination); o.start(t0); o.stop(t0 + 0.3);
+    });
+  } catch(e){}
+}
+
+function disegnaCampana(){
+  const b = $("#btnAvvisi");
+  b.setAttribute("aria-pressed", String(avvisiAttivi));
+  b.title = avvisiAttivi ? "Avvisi attivi: suono e notifiche. Clicca per disattivarli"
+                         : "Avvisi spenti. Clicca per attivare suono e notifiche";
+}
+function attivaAvvisi(){
+  avvisiAttivi = !avvisiAttivi;
+  try { localStorage.setItem(CHIAVE_AVVISI, avvisiAttivi ? "1" : "0"); } catch(e){}
+  disegnaCampana();
+  if (avvisiAttivi){
+    suona();   // prova del suono: sblocca anche l'audio nel browser
+    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+    mostraToast("Avvisi attivi", "Sentirai un suono e, a finestra chiusa o in secondo piano, riceverai una notifica.", null);
+  } else {
+    mostraToast("Avvisi spenti", "Resteranno solo i contatori sulle sezioni.", null);
+  }
+}
+disegnaCampana();
+if (location.hash === "#casa") mostraVista("casa");
+renderCasa();
+
 /* ---------- Avvio, login e uscita ---------- */
 function entra(){
   $("#login").hidden = true;
   $("#ruoloOperatore").innerHTML =
     esc(sess.email) + ' · <button class="esci" id="btnEsci">esci</button>' +
     ' <span class="mono" id="ultimoAgg" style="color:var(--muted)"></span>';
-  caricaDati().catch(err => {
+  caricaTutto().catch(err => {
     const m = String(err && err.message || err);
     if (m.indexOf("SESSIONE_SCADUTA") !== -1){
       scartaSessione();
@@ -1029,7 +1570,7 @@ function entra(){
   });
   clearInterval(timerRicarica);
   timerRicarica = setInterval(() => {
-    caricaDati().catch(err => {
+    caricaTutto().catch(err => {
       if (String(err && err.message).indexOf("SESSIONE_SCADUTA") !== -1){
         scartaSessione(); mostraLogin("Sessione scaduta, rifai l'accesso.");
       }
@@ -1047,6 +1588,7 @@ function mostraLogin(msg){
 function esci(){
   scartaSessione();
   SEGNALAZIONI = []; selezionata = null;
+  CASA = []; casaSel = null; conosciuti.seg = null; conosciuti.casa = null; renderCasa();
   render();
   mostraLogin(null);
 }
