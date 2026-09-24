@@ -350,6 +350,11 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 .side-note{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.5}
 .tipo-casa{color:#A78BFA;border-color:rgba(167,139,250,.35)}
 .tipo-fam{color:#F472B6;border-color:rgba(244,114,182,.35)}
+.casapin{cursor:pointer}
+.casapin path{transform-box:fill-box;transform-origin:center;transition:transform .15s ease}
+.casapin:hover path,.casapin.on path{transform:scale(1.45)}
+.casapin.on .alone{opacity:.28}
+.legenda-casa span{display:inline-flex;align-items:center;gap:5px}
 .match-row{display:flex;gap:6px;align-items:stretch}
 .match-row .simile{flex:1}
 .abbina{padding:0 12px;border-radius:9px;border:1px solid rgba(52,211,153,.4);color:var(--risolta);font-size:12px;font-weight:500}
@@ -476,7 +481,32 @@ textarea.note:focus{outline:none;border-color:var(--cyan)}
 
 <div class="shell" id="vistaCasa" hidden>
   <aside class="col col-side scroll">
-    <div class="side-sec" style="border-top:0">
+    <div class="scope-wrap">
+      <div class="scope">
+        <svg viewBox="0 0 300 300" role="img" aria-label="Radar delle case offerte e delle famiglie, raggruppate per comune">
+          <defs>
+            <linearGradient id="swCasa" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#00E5FF" stop-opacity=".28"/>
+              <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <circle cx="150" cy="150" r="140" fill="#0B131C" stroke="#1C2A38"/>
+          <circle cx="150" cy="150" r="105" fill="none" stroke="#1C2A38"/>
+          <circle cx="150" cy="150" r="70" fill="none" stroke="#1C2A38"/>
+          <circle cx="150" cy="150" r="35" fill="none" stroke="#1C2A38"/>
+          <line x1="10" y1="150" x2="290" y2="150" stroke="#1C2A38"/>
+          <line x1="150" y1="10" x2="150" y2="290" stroke="#1C2A38"/>
+          <g class="sweep"><path d="M150 150 L290 150 A140 140 0 0 0 251 51 Z" fill="url(#swCasa)"/></g>
+          <circle cx="150" cy="150" r="3.5" fill="#00E5FF"/>
+          <g id="casePin"></g>
+        </svg>
+      </div>
+      <div class="scope-legend legenda-casa">
+        <span><svg width="11" height="11" viewBox="-7 -8 14 15" aria-hidden="true"><path d="M-6 -1 L0 -7 L6 -1 V6 H-6 Z" fill="#7E93A3"/></svg> Case offerte</span>
+        <span><svg width="11" height="11" viewBox="-7 -8 14 15" aria-hidden="true"><path d="M-6 -1 L0 -7 L6 -1 V6 H-6 Z" fill="none" stroke="#7E93A3" stroke-width="1.6"/></svg> Famiglie</span>
+      </div>
+    </div>
+    <div class="side-sec">
       <h2>In sintesi</h2>
       <div class="kpi">
         <div><b id="kCase">0</b><span>case pronte o quasi</span></div>
@@ -1344,8 +1374,45 @@ function disegnaDettaglioCasa(){
   </div>`;
 }
 
+/* Radar della sezione Casa: le pratiche non hanno coordinate GPS,
+   quindi la posizione è simbolica. Ogni comune ha il suo spicchio
+   (così case e famiglie dello stesso comune stanno vicine), le case
+   offerte sull'anello esterno, le famiglie su quello interno.
+   Casa piena = casa offerta, casa vuota = famiglia che cerca casa;
+   il colore segue lo stato della pratica. */
+function hash(t){ let h = 2166136261; for (const c of String(t)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) / 4294967295; }
+
+function disegnaCasePin(){
+  const g = $("#casePin"); if (!g) return;
+  const comuni = [...new Set(CASA.map(r => r.comune))].sort();
+  const spicchio = (2 * Math.PI) / Math.max(comuni.length, 1);
+  const vis = visibiliCasa();
+  // dentro ogni comune, case e famiglie si distribuiscono a ventaglio senza sovrapporsi
+  const gruppi = {};
+  vis.forEach(r => (gruppi[r.comune + "|" + r.tipo] = gruppi[r.comune + "|" + r.tipo] || []).push(r));
+  Object.values(gruppi).forEach(l => l.sort((a, b) => String(a.creata_il).localeCompare(String(b.creata_il))));
+  g.innerHTML = vis.map(r => {
+    const i = comuni.indexOf(r.comune);
+    const l = gruppi[r.comune + "|" + r.tipo], j = l.indexOf(r), n = l.length;
+    const ampiezza = comuni.length > 1 ? spicchio * 0.8 : 2 * Math.PI;
+    const ang = i * spicchio + ((j + 0.5) / n - 0.5) * ampiezza + (hash(r.comune) - 0.5) * 0.2 - Math.PI / 2;
+    const raggio = r.tipo === "offerta" ? 100 + (j % 2) * 24 : 42 + (j % 2) * 24;
+    const x = 150 + Math.cos(ang) * raggio, y = 150 + Math.sin(ang) * raggio;
+    const col = (STATI_CASA[r.stato] || STATI_CASA.nuova).colore;
+    const piena = r.tipo === "offerta";
+    const on = casaSel === r.id ? " on" : "";
+    return `<g class="casapin${on}" data-casa data-id="${r.id}" role="button" tabindex="0"
+              aria-label="${esc(r.codice)} — ${esc(titoloCasa(r))}, ${esc(r.comune)}"
+              transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+      <circle class="alone" r="11" fill="${col}" opacity=".12"/>
+      <path d="M-6 -1 L0 -7 L6 -1 V6 H-6 Z" fill="${piena ? col : "#0B131C"}" stroke="${col}" stroke-width="${piena ? 0 : 1.6}" stroke-linejoin="round"/>
+    </g>`;
+  }).join("");
+}
+
 function renderCasa(){
   disegnaKpiCasa();
+  disegnaCasePin();
   disegnaFiltriCasa();
   disegnaListaCasa();
   disegnaDettaglioCasa();
@@ -1388,6 +1455,8 @@ document.addEventListener("click", e => {
               toast.remove(); return; }
 
   if (!e.target.closest("[data-casa]") && !e.target.closest("#btnChiudiCasa") && !e.target.closest("#btnLinkCasa")) return;
+  const pin = e.target.closest(".casapin");
+  if (pin){ apriCasa(pin.dataset.id); return; }
   const stat = e.target.closest(".stat[data-casa]");
   if (stat){ filtroCasa = stat.dataset.stato || null; renderCasa(); return; }
   const ab = e.target.closest(".abbina[data-casa]");
@@ -1418,9 +1487,14 @@ document.addEventListener("click", e => {
   }
 });
 
-$("#qCasa").addEventListener("input", () => disegnaListaCasa());
-$("#tipoCasa").addEventListener("change", () => disegnaListaCasa());
-$("#comuneCasa").addEventListener("change", () => { disegnaKpiCasa(); disegnaListaCasa(); });
+$("#qCasa").addEventListener("input", () => { disegnaListaCasa(); disegnaCasePin(); });
+$("#tipoCasa").addEventListener("change", () => { disegnaListaCasa(); disegnaCasePin(); });
+$("#comuneCasa").addEventListener("change", () => { disegnaKpiCasa(); disegnaListaCasa(); disegnaCasePin(); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const pin = e.target.closest && e.target.closest(".casapin");
+  if (pin){ e.preventDefault(); apriCasa(pin.dataset.id); }
+});
 
 function mostraVista(v){
   vista = v === "casa" ? "casa" : "seg";
