@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RADAR Casa — Dashboard Comune</title>
+<meta name="theme-color" content="#0F0F0F">
+<link rel="icon" href="favicon.png" type="image/png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--neon:#00E5FF;--neon-l:rgba(0,229,255,.1);--verde:#39D98A;--arancio:#FFB020;--rosso:#FF4C4C;
+--text:#F0F0F0;--muted:#A0A0A0;--hint:#707070;--border:#2A2A2A;--border-strong:#3A3A3A;--bg:#0F0F0F;--card:#1A1A1A;--header:#141414;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+button,input,select,textarea{font-family:inherit;}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--header);border-bottom:1px solid var(--border);padding:12px 20px;flex-wrap:wrap;}
+.logo{font-weight:700;letter-spacing:2px;font-size:17px;}.logo span{color:var(--neon);}
+.top-dx{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted);}
+.top-dx a{color:var(--muted);}
+.b{background:transparent;color:var(--muted);border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px;}
+.b:hover{color:var(--text);border-color:var(--neon);}
+.wrap{max-width:1200px;margin:0 auto;padding:20px;}
+.numeri{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px;}
+.num{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.num b{display:block;font-size:28px;font-weight:600;}
+.num span{font-size:13px;color:var(--muted);}
+.filtri{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.filtri select{background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-size:14px;}
+.colonne{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media (max-width:820px){.colonne{grid-template-columns:1fr;}}
+.col h2{font-size:15px;font-weight:600;margin-bottom:10px;color:var(--muted);}
+.voce{width:100%;text-align:left;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;color:var(--text);display:block;}
+.voce:hover,.voce.sel{border-color:var(--neon);}
+.voce .riga{display:flex;justify-content:space-between;gap:10px;font-size:14px;}
+.voce .sub{font-size:12.5px;color:var(--muted);margin-top:4px;}
+.stato{font-size:11px;padding:2px 8px;border-radius:12px;border:1px solid var(--border-strong);color:var(--muted);white-space:nowrap;}
+.stato.nuova{color:var(--neon);border-color:rgba(0,229,255,.4);}
+.stato.in_verifica{color:var(--arancio);border-color:rgba(255,176,32,.4);}
+.stato.abbinata{color:var(--verde);border-color:rgba(57,217,138,.4);}
+.vuoto{font-size:13px;color:var(--hint);padding:14px;border:1px dashed var(--border-strong);border-radius:10px;}
+.dettaglio{margin-top:20px;background:var(--card);border:1px solid var(--border-strong);border-radius:12px;padding:18px;}
+.dettaglio h3{font-size:17px;margin-bottom:6px;}
+.dettaglio dl{display:grid;grid-template-columns:170px 1fr;gap:6px 12px;font-size:14px;margin:12px 0;}
+.dettaglio dt{color:var(--muted);}
+.azioni{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+.azioni select,.dettaglio textarea{background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-size:14px;}
+.dettaglio textarea{width:100%;min-height:70px;margin-top:10px;}
+.match{margin-top:16px;}
+.match h4{font-size:14px;margin-bottom:8px;color:var(--neon);font-weight:600;}
+.login{display:flex;align-items:center;justify-content:center;min-height:80vh;padding:20px;}
+.login form{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;}
+.login h1{font-size:19px;font-weight:600;margin-bottom:6px;}
+.login p{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
+.login label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px;}
+.login input{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px 12px;font-size:15px;}
+.login button{width:100%;margin-top:18px;background:var(--neon);color:#04161A;border:none;border-radius:8px;padding:12px;font-weight:600;cursor:pointer;font-size:15px;}
+.lerr{margin-top:12px;font-size:13px;color:var(--rosso);}
+[hidden]{display:none!important;}
+:focus-visible{outline:2px solid var(--neon);outline-offset:2px;}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">RADAR <span>CASA</span> · Comune</div>
+  <div class="top-dx"><a href="dashboard.html">Segnalazioni</a><span id="chi"></span><button class="b" id="esci" hidden>Esci</button></div>
+</header>
+
+<div class="login" id="login" hidden>
+  <form id="loginForm">
+    <h1>Accesso operatori</h1>
+    <p>Le stesse credenziali della dashboard segnalazioni.</p>
+    <label for="em">Email</label><input id="em" type="email" autocomplete="username" required>
+    <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required>
+    <button type="submit" id="lgBtn">Entra</button>
+    <div class="lerr" id="lgErr" hidden></div>
+  </form>
+</div>
+
+<main class="wrap" id="app" hidden>
+  <div class="numeri">
+    <div class="num"><b id="n-case">0</b><span>case pronte o quasi pronte</span></div>
+    <div class="num"><b id="n-fam">0</b><span>famiglie in attesa</span></div>
+    <div class="num"><b id="n-abb">0</b><span>abbinamenti fatti</span></div>
+    <div class="num"><b id="n-freno">—</b><span>freno più citato dai proprietari</span></div>
+  </div>
+  <div class="filtri">
+    <select id="f-comune" aria-label="Filtra per comune"><option value="">Tutti i comuni</option></select>
+    <select id="f-stato" aria-label="Filtra per stato"><option value="">Tutti gli stati</option><option value="nuova">Nuove</option><option value="in_verifica">In verifica</option><option value="abbinata">Abbinate</option><option value="chiusa">Chiuse</option></select>
+    <button class="b" id="ricarica">Aggiorna</button>
+  </div>
+  <div class="colonne">
+    <section class="col"><h2>Case offerte</h2><div id="l-offerte"></div></section>
+    <section class="col"><h2>Famiglie che cercano casa</h2><div id="l-richieste"></div></section>
+  </div>
+  <section class="dettaglio" id="det" hidden></section>
+</main>
+
+<script src="config.js"></script>
+<script>
+var DATI=[], sel=null, sess=null;
+var $=function(s){return document.querySelector(s);};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+var STATI={nuova:'Nuova',in_verifica:'In verifica',abbinata:'Abbinata',chiusa:'Chiusa'};
+var STATO_CASA={pronta:'Pronta da abitare',piccoli_lavori:'Piccoli lavori',da_ristrutturare:'Da ristrutturare'};
+var FRENI={morosita:'Paura di non essere pagato',sfratto:'Tempi per riaverla',danni:'Paura di danni',pratiche:'Pratiche e contratti',disposizione:'Tenerla a disposizione',agevolazioni:'Non conosce le agevolazioni'};
+var ESIG={senza_barriere:'Senza barriere',animali:'Animali',arredata:'Arredata'};
+
+/* sessione e chiamate: stesso schema della dashboard segnalazioni */
+function salva(s){sess=s;try{sessionStorage.setItem('radar_sess',JSON.stringify(s));}catch(e){}}
+function leggi(){try{var v=sessionStorage.getItem('radar_sess');if(v)sess=JSON.parse(v);}catch(e){}return sess;}
+function scarta(){sess=null;try{sessionStorage.removeItem('radar_sess');}catch(e){}}
+function hdr(){return {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+(sess?sess.access_token:SUPABASE_KEY),'Content-Type':'application/json'};}
+function login(email,pw){
+  return fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw})})
+  .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+  .then(function(x){ if(!x.ok||!x.d.access_token) throw new Error(x.d.error_description||x.d.msg||'Credenziali non valide');
+    salva({access_token:x.d.access_token,refresh_token:x.d.refresh_token,email:(x.d.user&&x.d.user.email)||email}); });
+}
+function rinnova(){
+  if(!sess||!sess.refresh_token) return Promise.reject(new Error('nessuna sessione'));
+  return fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:sess.refresh_token})})
+  .then(function(r){return r.json();}).then(function(d){ if(!d.access_token) throw new Error('scaduta'); salva({access_token:d.access_token,refresh_token:d.refresh_token,email:sess.email}); });
+}
+function api(path,opts,retry){
+  opts=opts||{};
+  return fetch(SUPABASE_URL+path,{method:opts.method||'GET',headers:Object.assign(hdr(),opts.headers||{}),body:opts.body})
+  .then(function(r){
+    if((r.status===401||r.status===403)&&!retry) return rinnova().then(function(){return api(path,opts,true);}).catch(function(){throw new Error('SESSIONE_SCADUTA');});
+    if(!r.ok) return r.text().then(function(t){throw new Error(t||('Errore '+r.status));});
+    return r.status===204?null:r.json();
+  });
+}
+
+function carica(){
+  return api('/rest/v1/casa_richieste?select=*&order=creata_il.desc').then(function(rows){ DATI=rows||[]; riempiComuni(); disegna(); })
+  .catch(function(e){ if(String(e.message)==='SESSIONE_SCADUTA'){scarta();mostraLogin('Sessione scaduta, accedi di nuovo.');} else alert('Errore nel caricamento: '+e.message); });
+}
+function riempiComuni(){
+  var s=$('#f-comune'), cur=s.value, com={};
+  DATI.forEach(function(r){com[r.comune]=1;});
+  s.innerHTML='<option value="">Tutti i comuni</option>'+Object.keys(com).sort().map(function(c){return '<option'+(c===cur?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+}
+function filtrati(){
+  var c=$('#f-comune').value, st=$('#f-stato').value;
+  return DATI.filter(function(r){return (!c||r.comune===c)&&(!st||r.stato===st);});
+}
+function testoLocali(n){return n?(n>=5?'5+ locali':n+(n===1?' locale':' locali')):'locali n.d.';}
+
+function disegna(){
+  var rows=filtrati(), c=$('#f-comune').value;
+  var base=DATI.filter(function(r){return !c||r.comune===c;});
+  $('#n-case').textContent=base.filter(function(r){return r.tipo==='offerta'&&r.stato!=='chiusa'&&r.stato!=='abbinata'&&r.dati.stato!=='da_ristrutturare';}).length;
+  $('#n-fam').textContent=base.filter(function(r){return r.tipo==='richiesta'&&(r.stato==='nuova'||r.stato==='in_verifica');}).length;
+  $('#n-abb').textContent=base.filter(function(r){return r.tipo==='offerta'&&r.stato==='abbinata';}).length;
+  var conta={}; base.forEach(function(r){ if(r.tipo==='offerta') (r.dati.freni||[]).forEach(function(f){conta[f]=(conta[f]||0)+1;}); });
+  var top=Object.keys(conta).sort(function(a,b){return conta[b]-conta[a];})[0];
+  $('#n-freno').textContent=top?FRENI[top]:'—';
+  $('#n-freno').style.fontSize=top?'16px':'';
+
+  function voce(r){
+    var d=r.dati||{}, sub = r.tipo==='offerta'
+      ? testoLocali(d.locali)+(d.mq?' · '+d.mq+' m²':'')+' · '+(STATO_CASA[d.stato]||'stato n.d.')
+      : (d.persone||'?')+' persone · min '+testoLocali(d.locali_min)+' · fino a €'+(d.budget||'?');
+    return '<button class="voce'+(sel===r.id?' sel':'')+'" data-id="'+r.id+'"><div class="riga"><span>'+esc(r.comune)+(d.zona?' — '+esc(d.zona):'')+'</span><span class="stato '+r.stato+'">'+STATI[r.stato]+'</span></div><div class="sub">'+esc(r.codice)+' · '+esc(sub)+'</div></button>';
+  }
+  var off=rows.filter(function(r){return r.tipo==='offerta';}), ric=rows.filter(function(r){return r.tipo==='richiesta';});
+  $('#l-offerte').innerHTML=off.length?off.map(voce).join(''):'<div class="vuoto">Nessuna casa ancora. Diffondi il link del modulo ai proprietari del comune.</div>';
+  $('#l-richieste').innerHTML=ric.length?ric.map(voce).join(''):'<div class="vuoto">Nessuna famiglia ancora. I servizi sociali possono compilare il modulo insieme alle famiglie.</div>';
+  document.querySelectorAll('.voce').forEach(function(b){b.onclick=function(){apri(b.dataset.id);};});
+  if(sel) apri(sel,true);
+}
+
+/* compatibilità: stesso comune, locali sufficienti, casa non da ristrutturare, canone da verificare col budget */
+function compatibili(r){
+  var d=r.dati||{};
+  return DATI.filter(function(x){
+    if(x.tipo===r.tipo||x.comune!==r.comune||x.stato==='chiusa'||x.stato==='abbinata') return false;
+    var casa=r.tipo==='offerta'?d:x.dati, fam=r.tipo==='offerta'?x.dati:d;
+    if(casa.stato==='da_ristrutturare') return false;
+    if(fam.locali_min&&casa.locali&&casa.locali<fam.locali_min) return false;
+    if((fam.esigenze||[]).indexOf('arredata')>=0&&casa.arredo==='no') return false;
+    return true;
+  });
+}
+
+function apri(id,silenzioso){
+  var r=DATI.find(function(x){return x.id===id;}); if(!r) return;
+  sel=id; var d=r.dati||{}, righe=[];
+  if(r.tipo==='offerta'){
+    righe=[['Locali',testoLocali(d.locali)],['Superficie',d.mq?d.mq+' m²':'—'],['Stato',STATO_CASA[d.stato]||'—'],['Arredata',{si:'Sì',parziale:'In parte',no:'No'}[d.arredo]||'—'],['Cosa lo frena',(d.freni||[]).map(function(f){return FRENI[f];}).join(', ')||'—']];
+  } else {
+    righe=[['Persone',d.persone||'—'],['Locali minimi',testoLocali(d.locali_min)],['Affitto massimo','€'+(d.budget||'—')+' al mese'],['Esigenze',(d.esigenze||[]).map(function(e){return ESIG[e];}).join(', ')||'—'],['In graduatoria ERP',{si:'Sì',no:'No',non_so:'Non sa'}[d.graduatoria]||'—']];
+  }
+  righe.push(['Contatto',esc(r.nome)+' · '+esc(r.contatto)]);
+  if(d.note) righe.push(['Note del cittadino',esc(d.note)]);
+  var comp=compatibili(r);
+  var html='<h3>'+(r.tipo==='offerta'?'Casa offerta':'Famiglia che cerca casa')+' · '+esc(r.codice)+'</h3>'
+    +'<div class="sub" style="color:var(--muted);font-size:13px">'+esc(r.comune)+(d.zona?' — '+esc(d.zona):'')+' · ricevuta il '+new Date(r.creata_il).toLocaleDateString('it-IT')+'</div>'
+    +'<dl>'+righe.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+(x[0]==='Contatto'||x[0]==='Note del cittadino'?x[1]:esc(x[1]))+'</dd>';}).join('')+'</dl>'
+    +'<div class="azioni"><label for="nuovo-stato" style="font-size:13px;color:var(--muted)">Stato</label><select id="nuovo-stato">'+Object.keys(STATI).map(function(s){return '<option value="'+s+'"'+(s===r.stato?' selected':'')+'>'+STATI[s]+'</option>';}).join('')+'</select>'
+    +'<button class="b" id="salva">Salva</button></div>'
+    +'<textarea id="note-comune" placeholder="Note interne del Comune (sopralluogo, documenti, esito colloquio)">'+esc(r.note_comune||'')+'</textarea>'
+    +'<div class="match"><h4>'+(r.tipo==='offerta'?'Famiglie compatibili':'Case compatibili')+' ('+comp.length+')</h4>'
+    +(comp.length?comp.map(function(x){var xd=x.dati; return '<button class="voce" data-id="'+x.id+'"><div class="riga"><span>'+esc(x.codice)+'</span><span class="stato '+x.stato+'">'+STATI[x.stato]+'</span></div><div class="sub">'
+      +(x.tipo==='offerta'?testoLocali(xd.locali)+' · '+(STATO_CASA[xd.stato]||''):(xd.persone||'?')+' persone · fino a €'+(xd.budget||'?'))+'</div></button>';}).join('')
+      :'<div class="vuoto">Nessuna corrispondenza nello stesso comune per ora.</div>')
+    +'<p style="font-size:12px;color:var(--hint);margin-top:8px">Il canone concordato va calcolato sull\'accordo territoriale e confrontato con l\'affitto massimo della famiglia.</p></div>';
+  var det=$('#det'); det.innerHTML=html; det.hidden=false;
+  det.querySelectorAll('.voce').forEach(function(b){b.onclick=function(){apri(b.dataset.id);};});
+  $('#salva').onclick=function(){
+    var btn=this; btn.disabled=true; btn.textContent='Salvataggio...';
+    api('/rest/v1/casa_richieste?id=eq.'+r.id,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({stato:$('#nuovo-stato').value,note_comune:$('#note-comune').value.trim()})})
+    .then(function(){btn.textContent='Salvato';return carica();})
+    .catch(function(e){btn.disabled=false;btn.textContent='Salva';alert('Salvataggio non riuscito: '+e.message);});
+  };
+  if(!silenzioso) det.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('#l-offerte .voce,#l-richieste .voce').forEach(function(b){b.classList.toggle('sel',b.dataset.id===id);});
+}
+
+function mostraLogin(msg){ $('#app').hidden=true; $('#esci').hidden=true; $('#chi').textContent=''; $('#login').hidden=false; var e=$('#lgErr'); e.hidden=!msg; e.textContent=msg||''; }
+function entra(){ $('#login').hidden=true; $('#app').hidden=false; $('#esci').hidden=false; $('#chi').textContent=sess.email||''; carica(); }
+
+$('#loginForm').addEventListener('submit',function(ev){
+  ev.preventDefault(); var b=$('#lgBtn'); b.disabled=true; b.textContent='Accesso...';
+  login($('#em').value.trim(),$('#pw').value).then(entra).catch(function(e){mostraLogin(e.message);}).then(function(){b.disabled=false;b.textContent='Entra';});
+});
+$('#esci').onclick=function(){scarta();mostraLogin();};
+$('#ricarica').onclick=carica;
+$('#f-comune').onchange=function(){sel=null;$('#det').hidden=true;disegna();};
+$('#f-stato').onchange=disegna;
+
+if(leggi()) entra(); else mostraLogin();
+</script>
+</body>
+</html>
